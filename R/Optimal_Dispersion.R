@@ -518,7 +518,8 @@ gecode2_dispersion <- function(target_groups, all_nns_reordered) {
     k = K, 
     d_count = 2, 
     d_sorted = c(-1, 1),
-    d_matrix = d_matrix
+    d_matrix = d_matrix 
+    # needs to be able to insert upper bounds as argument
   )
   if (n > 2 && all(clusters == rep_len(1:K, n))) {
     print(n)
