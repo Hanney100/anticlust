@@ -221,6 +221,8 @@ optimal_dispersion <- function(
     all_nns_reordered <- reorder_edges(all_nns)
     if (solver == "Gecode") {
       solution <- constraintV9(K, all_nns_reordered, target_groups, solver)
+    } else if (solver == "Gecode2") {
+      solution <- gecode2_dispersion(target_groups, all_nns_reordered)
     } else {
       ilp <- k_coloring_ilp(all_nns_reordered, N, K, target_groups)
       solution <- solve_ilp(ilp, objective = "min", solver = solver, time_limit = time_limit)
@@ -234,7 +236,6 @@ optimal_dispersion <- function(
       all_nns_last <- all_nns
       all_nns_reordered_last <- all_nns_reordered
       dispersions_considered <- c(dispersions_considered, dispersion)
-      
     }
     counter <- counter + 1
     # Take out distances that have been investigated to proceed
@@ -501,6 +502,64 @@ constraintV9 <- function(number_clusters, edges, target_groups, solver_name) {
     return(solution)
   }
 }
+
+# Uses new Gecode implementation
+gecode2_dispersion <- function(target_groups, all_nns_reordered) {
+  if (!all(target_groups == target_groups[1])) {
+    stop("This Gecode implementation currently only allows equal-sized groups.")
+  }
+  K <- length(target_groups)
+  # solve max dispersion on cannot-link matrix
+  n <- length(unique(c(all_nns_reordered)))
+  d_matrix <- matrix(1, nrow = n , ncol = n)
+  d_matrix[cleanup_cannot_link_indices(all_nns_reordered)] <- -1
+  clusters <- RcppTestPackage::anticlustering(
+    n = nrow(d_matrix), 
+    k = K, 
+    d_count = 2, 
+    d_sorted = c(-1, 1),
+    d_matrix = d_matrix
+  )
+  solution <- list()
+  if (cannot_link_objective_singleton_allowed(clusters, d_matrix) < 0) { # cannot-link not fulfilled
+    solution$status <- 1
+    solution$obj <- 1 # this is actually a dummy, not needed later
+  } else {
+    solution$status <- 0
+    solution$obj <- -1
+  }
+  solution$x <- ilp_encoding_from_clusters(K, clusters)
+  solution
+}
+
+# because the function above uses this coding for clusters...
+ilp_encoding_from_clusters <- function(K, clusters) {
+  encoding <- lapply(clusters, function(x) x == 1:K)
+  for (i in 1:length(encoding)) {
+    names(encoding[[i]]) <- paste0("x_", i, "_", 1:length(encoding[[i]]))
+  }#
+  encoding <- unlist(encoding)
+  mode(encoding) <- "numeric"
+  cl_vector <- 1:K
+  names(cl_vector) <- paste0("w_", 1:K)
+  c(cl_vector, encoding)
+}
+
+# stupid function
+cannot_link_objective_singleton_allowed <- function(clusters, distances) {
+  tab <- table(clusters)
+  target_clusters <- sort(unique(as.numeric(names(tab[tab > 1]))))
+  if (length(target_clusters) == 0) {
+    return(1)
+  }
+  objectives <- sapply(
+    target_clusters, 
+    function(x) min(distances[clusters == x, clusters == x])
+  )
+  min(objectives)
+}
+
+
 
 
 # Function to solve optimal cannot_link constraints, used for the argument 
