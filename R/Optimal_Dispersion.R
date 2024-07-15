@@ -520,6 +520,10 @@ gecode2_dispersion <- function(target_groups, all_nns_reordered) {
     d_sorted = c(-1, 1),
     d_matrix = d_matrix
   )
+  if (n > 2 && all(clusters == rep_len(1:K, n))) {
+    print(n)
+    print("NOOOO")
+  }
   solution <- list()
   if (cannot_link_objective_singleton_allowed(clusters, d_matrix) < 0) { # cannot-link not fulfilled
     solution$status <- 1
