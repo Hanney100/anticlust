@@ -90,6 +90,9 @@ int* Rd, * UnderLB;
 
 void inputing()
 {
+	/* responsible for reading the input file, initializing matrices, 
+	* and setting constraints on group sizes.
+	*/
 	int i, j, k;
 	int x1, x2;
 	float d;
@@ -162,6 +165,10 @@ void inputing()
 
 void AssignMemery()
 {
+	/*  Allocates memory dynamically for various arrays and matrices necessary 
+	for the algorithm's execution. This includes structures for population management, 
+	distance matrices, diversity measures, and neighborhood exploration.
+	*/
 	int i, j;
 
 	p = new int[N];
@@ -233,6 +240,9 @@ void AssignMemery()
 
 void ReleaseMemery()
 {
+	/* responsible for reading the input file, 
+	   initializing matrices, and setting constraints on group sizes.
+	*/
 	int i;
 
 	delete[] p; p = NULL;
@@ -294,6 +304,8 @@ void ReleaseMemery()
 
 int Proof(Solution& S)
 {
+	/* verifies the feasibility of a solution and calculates its cost
+	*/
 	int i, j;
 	double ff;
 	int flag;
@@ -318,6 +330,7 @@ int Proof(Solution& S)
 
 void Outputing(Solution& S, char* filename)
 {
+	/* writes the solution details to a file if it is feasible */
 	int i; int r;
 	FILE* fp;
 	char buff[80];
@@ -336,6 +349,7 @@ void Outputing(Solution& S, char* filename)
 
 void Out_results(double best, double ave, double worst, char* filename, char instance[])
 {
+	/* writes the best, average, and worst results to a file */
 	int i;
 	FILE* fp;
 	char buff[80];
@@ -347,7 +361,7 @@ void Out_results(double best, double ave, double worst, char* filename, char ins
 
 void RandomInitiaSol(int p[], int SizeG[])
 {
-
+	/* Algorithm 2: initializes a random solution that respects the group size constraints */
 	int i, j;
 	int p1;
 	int count;
@@ -414,6 +428,7 @@ void RandomInitiaSol(int p[], int SizeG[])
 
 void BuildNeighbors()
 {
+	/* Initializes the neighbor structure for optimization */
 	int i, j, g;
 	int count;
 	int SN = N * (N - 1) / 2 + N * K;
@@ -440,6 +455,7 @@ void BuildNeighbors()
 
 void Clear_Delta_Matrix()
 {
+	/* Resets the delta matrix and objective function value */
 	int x, g;
 	f = 0.0;
 	for (x = 0; x < N; x++)
@@ -450,6 +466,7 @@ void Clear_Delta_Matrix()
 
 void Build_Delta_Matrix()
 {
+	/*  Builds the delta matrix and calculates the objective function value */
 	int i, j;
 	Clear_Delta_Matrix();
 
@@ -472,6 +489,7 @@ void Build_Delta_Matrix()
 }
 
 void Build_GroupDiv_For_Crossover() {
+	/*  Builds group diversity values for crossover */
 	int i, j;
 	for (i = 0; i < K; i++) {
 		gDiv[i] = 0.0;
@@ -488,6 +506,7 @@ void Build_GroupDiv_For_Crossover() {
 
 void One_Move_Update_Delta_Matrix(int i, int g0, int g1)
 {
+	/* udates the delta matrix for single-element moves */
 	int x, j, k;
 
 	for (j = 0; j < N; j++)
@@ -546,6 +565,8 @@ void One_Move_Update_Delta_Matrix1(int i, int g0, int g1)
 
 void RandLS(int partition[], int SizeGroup[], double* cost)
 {
+	/* Algorithm 3: Double-neighborhood local search method.
+	 Performs a random local search and updates the cost */
 	int i, v, g, x, y;
 	int old_g, old_g1, swap;
 	double delt;
@@ -608,6 +629,7 @@ void RandLS(int partition[], int SizeGroup[], double* cost)
 
 void StrongPerturbation(int L, int partition[], int SizeGroup[])
 {
+	/* Algorithm 4: Undirected Perturbation. Applies a strong perturbation to the partition */
 	int i, v, g, x, y;
 	int NumberNeighbors, old_g, old_g1, swap;
 	int iter = 0;
@@ -670,6 +692,8 @@ void StrongPerturbation(int L, int partition[], int SizeGroup[])
 
 void DirectPerturbation(int LMAX, int partition[], int SizeGroup[])
 {
+	/* Algorithm 6: Directed Perturbation. 
+	Iteratively refines partitions to balance group sizes and minimize costs */
 	int i, j, v, g, x, y, k, L, number, Minsd, MinE, Flag;
 	double delt, delt1, delt_max;
 	int NumberNeighbors, old_g, old_g1, swap;
@@ -787,6 +811,7 @@ void DirectPerturbation(int LMAX, int partition[], int SizeGroup[])
 }
 
 void Crossover(int partition1[], int partition2[], int sc[], int scSizeGroup[]) {
+	/* Algorithm 5: combines partitions in a way that maintains group constraints */
 	int i, j, k, gDivMax, g;
 	int lengthSE;
 	int lengthSG;
@@ -1067,6 +1092,7 @@ void Crossover(int partition1[], int partition2[], int sc[], int scSizeGroup[]) 
 
 }
 double FitRadioAndDis(int partition1[], int partition2[], double cost1, double cost2) {
+	/* evaluates the quality and dissimilarity of partitions */
 	double radio;
 	int i, j;
 	int count;
@@ -1085,6 +1111,7 @@ double FitRadioAndDis(int partition1[], int partition2[], double cost1, double c
 
 void InitialSol(Solution& S)
 {
+	/* Algorithm 2: initializes a solution S */
 	int i, j;
 	int counter = 0;
 	RandomInitiaSol(S.p, S.SizeG);
@@ -1092,12 +1119,14 @@ void InitialSol(Solution& S)
 }
 
 bool Cmpare(const Solution &a, const Solution &b) {
+	/* ompares two solutions based on their cost */
 	return a.cost > b.cost;
 }
 
 
 void SearchAlgorithm()
 {
+	/* Algorithm 1:Ö The main procedure of TPSDP. */
 	int i, j, k;
 	int L, LMAX;
 	double theta, theta_max, theta_min;
