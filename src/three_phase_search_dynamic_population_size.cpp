@@ -28,9 +28,9 @@ using namespace std;
 
 
 typedef struct Solution {
-	int* p;
-	int* SizeG;
-	double cost;
+	int* p;  		// cluster membership of each element
+	int* SizeG;  	// size of each cluster
+	double cost;	// global cost funtion value of solution
 }Solution;
 
 typedef struct Neighborhood {
@@ -83,6 +83,9 @@ double** D;   // distance matrix between elements
 double** DT;
 int* LB; // Lower bound of the number of elements in the group i 
 int* UB; // Upper bound of the number of elements in the group i
+double theta, theta_max, theta_min; 
+int beta_min; 
+int LMAX;
 
 double** AvgCon;
 int* Rd, * UnderLB;
@@ -1126,11 +1129,10 @@ bool Cmpare(const Solution &a, const Solution &b) {
 
 void SearchAlgorithm()
 {
-	/* Algorithm 1:Ö The main procedure of TPSDP. */
+	/* Algorithm 1: The main procedure of TPSDP. */
 	int i, j, k;
-	int L, LMAX;
-	double theta, theta_max, theta_min;
-	int beta_min;
+	int L;
+	
 	int radio;
 	int pickS;
 	starting_time = clock();
@@ -1146,23 +1148,6 @@ void SearchAlgorithm()
 			GS.cost = Pop[i].cost;
 		}
 	}
-
-	if (N <= 400)
-	{
-		theta_max = 1.2;
-		theta_min = 0.1;
-		beta_min = 2;
-	}
-	else 
-	{
-		theta_max = 2.0;
-		theta_min = 1.0;
-		beta_min = 1;
-	}
-	
-	theta = theta_max;
-	// eta_d
-	LMAX = 3;
 
 	while (1.0 * (clock() - starting_time) / CLOCKS_PER_SEC < Time_limit)
 	{
@@ -1237,170 +1222,69 @@ void SearchAlgorithm()
 	}
 }
 
-int main(int argc, char* argv[])
+void three_phase_search_dynamic_population_size(double *D, 
+                                            double *DT,
+                                            int *N, int *K, 
+                                            int *upper_bound, int *lower_bound, 
+                                            int *result,
+											int	*cost,
+											int *popSize, 
+											int *time_limit,
+											double *theta_max,
+											double *theta_min,
+											int *beta_min,
+											int *LMAX
+                                           )
 {
-	// input vertex
-	int vertex[] = {120,240,480,960};
-	// input instance index
-	int instance[] = { 1,2,3,4,5,6,7,8,9,10 };
-	// select group type
-	char groupType[] = { 's' };
-	int type,ll;
-	// type = 1 for 120,240,480,960
-	// type = 2 for 2000,3000
-	type = 1;
-	int gt, ver, ins;
-	if(type == 1){
-		for (gt = 0; gt < 1; gt++) {
-			for (ver = 2; ver < 3 ; ver++) {
-				for (ins = 0; ins < 1; ins++) {
-					int i, j;
-					int i1, j1;
-					int seed;
-					const int  Times = 20;
-					double F[Times];
-					double F_best = -99999999, F_worst = 999999999, F_ave = 0.0;
-					seed = time(NULL) % 1000000;
-					srand(seed);
+	/* receives data from r, calls SearchAlgorithm, save results for r
+	*/	
 
-					char str1[100] = { 0 };
-					char str2[100] = { 0 };
-					char str3[100] = { 0 };
+	N = *N;
+	K = *K;
+	popSize = *popSize;  //beat_max in algortihm
+	theta = *theta_max;
+	theta_max = *theta_max;
+	beta_min = *beta_min;
+	LMAX = *LMAX;
 
-					//RanReal
-					//RanInt
-					//Geo
+	// give a warning when this reaches 
+	/*
+	Time_limit =  *time_limit;
+	if (N <= 120 && Time_limit <= 3) {
+		 Rcpp::warning("", N);
+	};
+	else if (N == 240) Time_limit = 20;
+	else if (N == 480) Time_limit = 120;
+	else if (N == 960) Time_limit = 600;
+	else if (N == 2000) Time_limit = 1200;
+	else if (N == 3000) Time_limit = 3000;
 
-					if(instance[ins] < 10){
-						sprintf(str1, ".\\benchmark\\RanInt\\RanInt_n%d_%cs_0%d.txt", vertex[ver], groupType[gt], instance[ins]);
-						sprintf(str2, ".\\RanInt_n%d_%cs_0%d.txt", vertex[ver], groupType[gt], instance[ins]);
-						sprintf(str3, ".\\RanInt_n%d_%cs_0%d.txt", vertex[ver], groupType[gt], instance[ins]);
-					}else{
-						sprintf(str1, ".\\benchmark\\RanReal\\RanReal_n%d_%cs_%d.txt", vertex[ver], groupType[gt], instance[ins]);
-						sprintf(str2, ".\\RanReal_n%d_%cs_%d.txt", vertex[ver], groupType[gt], instance[ins]);
-						sprintf(str3, ".\\RanReal_n%d_%cs_%d.txt", vertex[ver], groupType[gt], instance[ins]);
-					}
-					
-					File_Name = str1;
-					Output_File_Name = str2;
-					Solution_File = str3;
-
-			
-					inputing();
-					// beta_max
-					popSize = 15;
-					AssignMemery();
-
-					if (N == 120) Time_limit = 3;
-					else if (N == 240)Time_limit = 20;
-					else if (N == 480)Time_limit = 120;
-					else if (N == 960)Time_limit = 600;
-					else if (N == 2000)Time_limit = 1200;
-					else if (N == 3000)Time_limit = 3000;
-
-
-					BuildNeighbors();
-
-					OS.cost = -99999.0;
-
-					for (j = 0; j < Times; j++) F[j] = 0.0;
-					for (i = 0; i < Times; i++)
-					{
-						SearchAlgorithm();
-						if (Proof(GS))
-						{
-							F[i] = GS.cost;
-							if (F[i] > OS.cost)
-							{
-								for (i1 = 0; i1 < N; i1++) OS.p[i1] = GS.p[i1];
-								for (j1 = 0; j1 < K; j1++) OS.SizeG[j1] = GS.SizeG[j1];
-								OS.cost = GS.cost;
-							}
-						}
-						printf("%lf \n", F[i]);
-					}
-					for (i = 0; i < Times; i++)
-					{
-						if (F[i] > F_best)  F_best = F[i];
-						if (F[i] < F_worst)  F_worst = F[i];
-						F_ave += F[i];
-					}
-					F_ave /= Times;
-					Out_results(F_best, F_ave, F_worst, Output_File_Name, File_Name);
-					Outputing(OS, Solution_File);
-					ReleaseMemery();
-				}
-			}
-		}
+	if (N <= 400) {
+		theta_max = 1.2;
+		theta_min = 0.1;
+		beta_min = 2;
+	} else {
+		theta_max = 2.0;
+		theta_min = 1.0;
+		beta_min = 1;
 	}
-	else{
-		for (ll = 1; ll < 21; ll++) {
-            int i1, j1;
-			int seed;
-			char str1[100] = { 0 };
-			char str2[100] = { 0 };
-			char str3[100] = { 0 };
-			//sprintf(str1, ".\\benchmark\\MDG_a\\MDG-a_%d_n2000_m200.txt",ll);
-			//sprintf(str2, "MDG-a_%d_n2000_m200_6_14_new.txt", ll);
-			//sprintf(str3, "MDG-a_%d_n2000_m200_6_14_new.txt", ll);
-			
-			sprintf(str1, ".\\benchmark\\MDG_c\\MDG-c_%d_n3000.txt",ll);
-			sprintf(str2, ".\\MDG-c_%d_n3000_m50_48_72_new.txt", ll);
-			sprintf(str3, ".\\MDG-c_%d_n3000_m50_48_72_new.txt", ll);
-			File_Name = str1;
-			Output_File_Name = str2;
-			Solution_File = str3;
+	
+	theta = theta_max;
+	// eta_d
+	LMAX = 3;
+	*/
 
-			const int  Times = 20;
-			double F[Times];
-			double F_best = -99999999, F_worst = 999999999, F_ave = 0.0;
-			seed = time(NULL) % 1000000;
-			srand(seed);
+	
+	AssignMemery();
+	
+	BuildNeighbors();
 
-			inputing();
-			//beta_max
-            popSize = 15;
-			AssignMemery();
+	SearchAlgorithm();
 
-			if (N == 120) Time_limit = 3;
-			else if (N == 240)Time_limit = 20;
-			else if (N == 480)Time_limit = 120;
-			else if (N == 960)Time_limit = 600;
-			else if (N == 2000)Time_limit = 1200;
-			else if (N == 3000)Time_limit = 3000;
+	//save GS -> solution with result
+	result = GS.p;
+	cost = GS.cost;
 
-			
-			BuildNeighbors();
-			OS.cost = -99999.0;
-			int i, j;
-			for (j = 0; j < Times; j++) F[j] = 0.0;
-			for (i = 0; i < Times; i++)
-			{
-				SearchAlgorithm();
-				if (Proof(GS))
-				{
-					F[i] = GS.cost;
-					if (F[i] > OS.cost)
-					{
-						for (i1 = 0; i1 < N; i1++) OS.p[i1] = GS.p[i1];
-						for (j1 = 0; j1 < K; j1++) OS.SizeG[j1] = GS.SizeG[j1];
-						OS.cost = GS.cost;
-					}
-				}
-				printf("%lf \n", F[i]);
-			}
-			for (i = 0; i < Times; i++)
-			{
-				if (F[i] > F_best)  F_best = F[i];
-				if (F[i] < F_worst)  F_worst = F[i];
-				F_ave += F[i];
-			}
-			F_ave /= Times;
-			Out_results(F_best, F_ave, F_worst, Output_File_Name, File_Name);
-			Outputing(OS, Solution_File);
-			ReleaseMemery();
-		}
-	}
-	return 0;
+	ReleaseMemery();
 
 }
