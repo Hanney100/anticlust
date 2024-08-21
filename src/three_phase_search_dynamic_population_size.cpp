@@ -1,4 +1,4 @@
-﻿/*
+/*
  * copied from:
  * Xiao Yang et al. “A three-phase search approach with dynamic population size for solving
  the maximally diverse grouping problem”. In: European Journal of Operational Research
@@ -8,6 +8,7 @@
  
 #define WIN32_LEAN_AND_MEAN
 #define _CRT_SECURE_NO_WARNINGS
+#include <Rcpp.h>
 #include <cstdlib>
 #include <cstdlib>
 #include "stdio.h"
@@ -1222,18 +1223,17 @@ void SearchAlgorithm()
 	}
 }
 
-void three_phase_search_dynamic_population_size(double *D, 
-                                            double *DT,
-                                            int *N, int *K, 
-                                            int *upper_bound, int *lower_bound, 
-                                            int *result,
-											int	*cost,
-											int *popSize, 
-											int *time_limit,
-											double *theta_max,
-											double *theta_min,
-											int *beta_min,
-											int *LMAX
+Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix D, 
+                                            int N, 
+                                            int K, 
+                                            int upper_bound, 
+                      											int lower_bound, 
+                      											int popSize, 
+                      											int time_limit,
+                      											double theta_max,
+                      											double theta_min,
+                      											int beta_min,
+                      											int LMAX
                                            )
 {
 	/* receives data from r, calls SearchAlgorithm, save results for r
@@ -1241,7 +1241,7 @@ void three_phase_search_dynamic_population_size(double *D,
 
 	N = *N;
 	K = *K;
-	popSize = *popSize;  //beat_max in algortihm
+	popSize = *popSize;
 	theta = *theta_max;
 	theta_max = *theta_max;
 	beta_min = *beta_min;
@@ -1282,9 +1282,14 @@ void three_phase_search_dynamic_population_size(double *D,
 	SearchAlgorithm();
 
 	//save GS -> solution with result
+	Rcpp::IntegerVector result(N.size());
 	result = GS.p;
-	cost = GS.cost;
+	for (int i = 0; i < N; i++) {
+        result[i] = GS.p[i];
+    }
+	int cost = GS.cost;
 
 	ReleaseMemery();
 
+ 	Rcpp::List::create(Rcpp::Named("cost") = cost, Rcpp::Named("result") = result);
 }
