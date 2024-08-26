@@ -1,4 +1,4 @@
-/*
+﻿/*
  * copied from:
  * Xiao Yang et al. “A three-phase search approach with dynamic population size for solving
  the maximally diverse grouping problem”. In: European Journal of Operational Research
@@ -90,82 +90,6 @@ int LMAX;
 
 double** AvgCon;
 int* Rd, * UnderLB;
-
-
-void inputing()
-{
-	/* responsible for reading the input file, initializing matrices, 
-	* and setting constraints on group sizes.
-	*/
-	int i, j, k;
-	int x1, x2;
-	float d;
-	ifstream FIC;
-	FIC.open(File_Name);
-	if (FIC.fail())
-	{
-		cout << "### Erreur open1, File_Name " << File_Name << endl;
-		exit(0);
-	}
-	FIC >> N;
-	if (N == 3000) {
-		K = 50;
-		LB = new int[K];
-		UB = new int[K];
-		for (i = 0; i < K; i++) { LB[i] = 48; UB[i] = 72; }
-	}
-	else {
-		FIC >> K;
-		char StrReading[100];
-		FIC >> StrReading;
-		if (FIC.eof())
-		{
-			cout << "### Error open2, File_Name " << File_Name << endl;
-			exit(0);
-		}
-		if (strcmp(StrReading, "ds") == 0 || strcmp(StrReading, "ss") == 0)
-		{
-			LB = new int[K];
-			UB = new int[K];
-			for (i = 0; i < K; i++) { FIC >> LB[i]; FIC >> UB[i]; }
-		}
-	}
-
-	D = new double* [N];
-	for (i = 0; i < N; i++) D[i] = new double[N];
-	for (i = 0; i < N; i++)
-		for (j = 0; j < N; j++) D[i][j] = 0.0;
-
-	DT = new double* [N];
-	for (i = 0; i < N; i++) DT[i] = new double[N];
-
-	for (i = 0; i < N; i++)
-		for (j = 0; j < N; j++) DT[i][j] = 0.0;
-
-	while (!FIC.eof())
-	{
-		FIC >> x1 >> x2 >> d;
-		//cout << x1 <<"  "<< x2 <<"  "<<d<<" "<< endl;
-		if (x1 < 0 || x2 < 0 || x1 >= N || x2 >= N)
-		{
-			cout << "### Error of node : x1="
-				<< x1 << ", x2=" << x2 << endl;
-			exit(0);
-		}
-		if (x1 != x2)
-		{
-
-			D[x2][x1] = d;
-			D[x1][x2] = D[x2][x1];
-
-			DT[x2][x1] = 2.0 * d;
-			DT[x1][x2] = DT[x2][x1];
-		}
-
-	}
-
-	FIC.close();
-}
 
 void AssignMemery()
 {
@@ -1223,17 +1147,17 @@ void SearchAlgorithm()
 	}
 }
 
-Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix D, 
+Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix matrix, 
                                             int N, 
-                                            int K, 
+											int K, 
                                             int upper_bound, 
-                      											int lower_bound, 
-                      											int popSize, 
-                      											int time_limit,
-                      											double theta_max,
-                      											double theta_min,
-                      											int beta_min,
-                      											int LMAX
+											int lower_bound, 
+											int popSize, 
+											int time_limit,
+											double theta_max,
+											double theta_min,
+											int beta_min,
+											int LMAX
                                            )
 {
 	/* receives data from r, calls SearchAlgorithm, save results for r
@@ -1241,39 +1165,29 @@ Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix D,
 
 	N = *N;
 	K = *K;
-	popSize = *popSize;
+	popSize = *popSize;  //beta_max in algortihm
 	theta = *theta_max;
 	theta_max = *theta_max;
 	beta_min = *beta_min;
 	LMAX = *LMAX;
 
-	// give a warning when this reaches 
-	/*
-	Time_limit =  *time_limit;
-	if (N <= 120 && Time_limit <= 3) {
-		 Rcpp::warning("", N);
-	};
-	else if (N == 240) Time_limit = 20;
-	else if (N == 480) Time_limit = 120;
-	else if (N == 960) Time_limit = 600;
-	else if (N == 2000) Time_limit = 1200;
-	else if (N == 3000) Time_limit = 3000;
+	D = new double* [N];
+	DT = new double* [N];
+	for (i = 0; i < N; i++) {
+		D[i] = new double[N];
+		DT[i] = new double[N];
+	} 
 
-	if (N <= 400) {
-		theta_max = 1.2;
-		theta_min = 0.1;
-		beta_min = 2;
-	} else {
-		theta_max = 2.0;
-		theta_min = 1.0;
-		beta_min = 1;
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
+			D[i][j] = matrix(i, j);
+			DT[i][j] = 2* matrix(i,j);
+		}
 	}
 	
-	theta = theta_max;
-	// eta_d
-	LMAX = 3;
-	*/
-
+	LB = new int[K]; 
+	UB = new int[K];
+	for (i = 0; i < K; i++) { LB[i] = *lower_bound; UB[i] = *upper_bound; }
 	
 	AssignMemery();
 	
