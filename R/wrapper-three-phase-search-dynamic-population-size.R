@@ -9,15 +9,14 @@
 #' 
 #' @param x The data input. Currently just a vector.
 #' @param K How many anticlusters should be created. 
-#' @param popSize
-#' @param beta_max
+#' @param popSize beta_max from paper
 #' @param beta_min
 #' @param lower_bound
 #' @param upper_bound
 #' @param theta_min
 #' @param theta_max
 #' @param time_limit
-#' @param return 
+#' @param return
 #'     
 #' @details
 #' 
@@ -42,7 +41,7 @@
 library(Rcpp)
 
 three_phase_search_anticlustering <- function(x, K, popSize = 15, LMAX=3,
-    upper_bound  = NULL, lower_bound  = NULL, time_limit  = NULL, theta_max = 15, theta_min = NULL, beta_max = NULL, beta_min = NULL) {
+    upper_bound  = NULL, lower_bound  = NULL, time_limit  = NULL, theta_max = 15, theta_min = NULL, beta_min = NULL) {
 
     N <- length(x)
     if (is.null(upper_bound)) {
@@ -72,6 +71,7 @@ three_phase_search_anticlustering <- function(x, K, popSize = 15, LMAX=3,
         else { Time_limit  <- 5000 }
     } 
 
-  return(three_phase_search_dynamic_population_size(N, K, upper_bound, lower_bound, cost, popSize, time_limit, theta_max, theta_min, beta_min, LMAX))
+
+  return(three_phase_search_dynamic_population_size(D, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX))
 
 }
