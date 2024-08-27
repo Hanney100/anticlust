@@ -38,40 +38,49 @@
 #' 302.3 (2022). [SOURCE-CODE: https://raw.githubusercontent.com/toyamaailab/toyamaailab.github.io/main/resource/TPSDP_Code.zip],
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
-library(Rcpp)
 
-three_phase_search_anticlustering <- function(x, K, popSize = 15, LMAX=3,
-    upper_bound  = NULL, lower_bound  = NULL, time_limit  = NULL, theta_max = 15, theta_min = NULL, beta_min = NULL) {
+three_phase_search_anticlustering <- function(x, K, N,
+    upper_bound  = NULL, lower_bound  = NULL, popSize = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
 
-    N <- length(x)
-    if (is.null(upper_bound)) {
-        upper_bound = K
-    } 
+    print("Current x:", x)
+    print("Current N:", N)
+    print("Current K:", K)
+    
+ 
     if (is.null(lower_bound)) {
-       lower_bound = K
+       lower_bound <- K
+    } 
+    if (is.null(upper_bound)) {
+       upper_bound <- K
     } 
 
-	if (N <= 400  & is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {
-		theta_max  <- 1.2
-		theta_min  <- 0.1
-		beta_min  <- 2
-	} else if ( is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {
-		theta_max  <- 2.0
-		theta_min  <- 1.0
-		beta_min  <- 1
-	}
+     print("Current Upper Bound:", upper_bound)
+     print("Current Lower Bound:", lower_bound)
+    
+    if (N <= 400  & is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {
+    	theta_max  <- 1.2
+    	theta_min  <- 0.1
+    	beta_min  <- 2
+    } else if ( is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {
+    	theta_max  <- 2.0
+    	theta_min  <- 1.0
+    	beta_min  <- 1
+    }
 
     if (is.null(time_limit)) {
-       	if (N <= 120) { Time_limit <- 3 }
-        else if (N <= 240) { Time_limit <- 20 }
-        else if (N <= 480) { Time_limit <- 120 }
-        else if (N <= 960) { Time_limit <- 600 }
-        else if (N <= 2000) { Time_limit <- 1200 }
-        else if (N <= 3000) { Time_limit <- 3000 }
-        else { Time_limit  <- 5000 }
+       	if (N <= 120) { time_limit <- 3 }
+        else if (N <= 240) { time_limit <- 20 }
+        else if (N <= 480) { time_limit <- 120 }
+        else if (N <= 960) { time_limit <- 600 }
+        else if (N <= 2000) { time_limit <- 1200 }
+        else if (N <= 3000) { time_limit <- 3000 }
+        else { time_limit  <- 5000 }
     } 
 
+    results <- three_phase_search_dynamic_population_size(x, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX)
 
-  return(three_phase_search_dynamic_population_size(D, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX))
+    print(results)
+
+    return(results)
 
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * copied from:
  * Xiao Yang et al. “A three-phase search approach with dynamic population size for solving
  the maximally diverse grouping problem”. In: European Journal of Operational Research
@@ -25,7 +25,9 @@
 #include <ctype.h>
 #include <vector>
 #include <algorithm>
+ 
 using namespace std;
+using namespace Rcpp;
 
 
 typedef struct Solution {
@@ -1147,6 +1149,7 @@ void SearchAlgorithm()
 	}
 }
 
+// [[Rcpp::export]]
 Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix matrix, 
                                             int N, 
 											int K, 
@@ -1163,22 +1166,24 @@ Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix matrix
 	/* receives data from r, calls SearchAlgorithm, save results for r
 	*/	
 
-	N = *N;
-	K = *K;
-	popSize = *popSize;  //beta_max in algortihm
-	theta = *theta_max;
-	theta_max = *theta_max;
-	beta_min = *beta_min;
-	LMAX = *LMAX;
+	N = N;
+    Rcpp::Rcout << "Thanks for viewing my code!" << std::endl;
+	K = K;
+	popSize = popSize;  //beta_max in algortihm
+	theta = theta_max;
+	theta_max = theta_max;
+	beta_min = beta_min;
+	LMAX = LMAX;
 
 	D = new double* [N];
 	DT = new double* [N];
+	int i;
 	for (i = 0; i < N; i++) {
 		D[i] = new double[N];
 		DT[i] = new double[N];
 	} 
 
-	for (int i = 0; i < N; i++) {
+	for (i = 0; i < N; i++) {
 		for (int j = 0; j < N; j++) {
 			D[i][j] = matrix(i, j);
 			DT[i][j] = 2* matrix(i,j);
@@ -1187,7 +1192,7 @@ Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix matrix
 	
 	LB = new int[K]; 
 	UB = new int[K];
-	for (i = 0; i < K; i++) { LB[i] = *lower_bound; UB[i] = *upper_bound; }
+	for (i = 0; i < K; i++) { LB[i] = lower_bound; UB[i] = upper_bound; }
 	
 	AssignMemery();
 	
@@ -1196,8 +1201,7 @@ Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix matrix
 	SearchAlgorithm();
 
 	//save GS -> solution with result
-	Rcpp::IntegerVector result(N.size());
-	result = GS.p;
+	Rcpp::IntegerVector result(N);
 	for (int i = 0; i < N; i++) {
         result[i] = GS.p[i];
     }
@@ -1205,5 +1209,5 @@ Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix matrix
 
 	ReleaseMemery();
 
- 	Rcpp::List::create(Rcpp::Named("cost") = cost, Rcpp::Named("result") = result);
+ 	return Rcpp::List::create(Rcpp::Named("cost") = cost, Rcpp::Named("result") = result);
 }

@@ -62,7 +62,9 @@ Depends:
 Imports: 
     Matrix,
     RANN (>= 2.6.0),
-    lpSolve
+    lpSolve,
+    Rcpp (>= 1.0.12)
+LinkingTo: Rcpp
 Suggests: 
     knitr,
     palmerpenguins,
@@ -76,7 +78,7 @@ VignetteBuilder:
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: yes
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 SystemRequirements: The exact (anti)clustering algorithms require that either the GNU linear programming kit (GLPK
              library) is installed (<http://www.gnu.org/software/glpk/>) or the SYMPHONY open source MILP solver
              (<https://github.com/coin-or/SYMPHONY>). Rendering the vignette requires pandoc
