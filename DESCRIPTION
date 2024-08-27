@@ -65,7 +65,9 @@ Depends:
 Imports: 
     Matrix,
     RANN (>= 2.6.0),
-    lpSolve
+    lpSolve,
+    Rcpp (>= 1.0.12)
+LinkingTo: Rcpp
 Suggests: 
     knitr,
     palmerpenguins,
