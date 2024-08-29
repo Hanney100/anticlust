@@ -63,8 +63,7 @@ Imports:
     Matrix,
     RANN (>= 2.6.0),
     lpSolve,
-    Rcpp (>= 1.0.12)
-LinkingTo: Rcpp
+    Rcpp (>= 1.0.13)
 Suggests: 
     knitr,
     palmerpenguins,
@@ -83,3 +82,5 @@ SystemRequirements: The exact (anti)clustering algorithms require that either th
              library) is installed (<http://www.gnu.org/software/glpk/>) or the SYMPHONY open source MILP solver
              (<https://github.com/coin-or/SYMPHONY>). Rendering the vignette requires pandoc
              (<https://pandoc.org/>).
+LinkingTo: 
+    Rcpp

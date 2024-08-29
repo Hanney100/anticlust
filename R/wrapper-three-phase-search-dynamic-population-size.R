@@ -7,7 +7,7 @@
 #' Pseudocode in Algorithm 1).
 #' 
 #' 
-#' @param x The data input. Currently just a vector.
+#' @param matrix The data input. Currently just a vector.
 #' @param K How many anticlusters should be created. 
 #' @param popSize beta_max from paper
 #' @param beta_min
@@ -38,13 +38,21 @@
 #' 302.3 (2022). [SOURCE-CODE: https://raw.githubusercontent.com/toyamaailab/toyamaailab.github.io/main/resource/TPSDP_Code.zip],
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
-
-three_phase_search_anticlustering <- function(x, K, N,
+#' #' special imports for rccp and eval function
+#' @rawNamespace importFrom(Rcpp, evalCpp)
+#' @rawNamespace exportPattern("^[[:alpha:]]+")
+three_phase_search_anticlustering <- function(matrix, K, N,
     upper_bound  = NULL, lower_bound  = NULL, popSize = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
 
-    print("Current x:", x)
+  
     print("Current N:", N)
     print("Current K:", K)
+    
+    if (is.null(matrix)) {
+      cat("x is NULL\n")
+    } else {
+      cat("Current x:", matrix, "\n")
+    }
     
  
     if (is.null(lower_bound)) {
@@ -77,7 +85,7 @@ three_phase_search_anticlustering <- function(x, K, N,
         else { time_limit  <- 5000 }
     } 
 
-    results <- three_phase_search_dynamic_population_size(x, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX)
+    results <- three_phase_search_dynamic_population_size(matrix, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX)
 
     print(results)
 
