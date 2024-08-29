@@ -6,7 +6,7 @@
 \title{Three phase search with dynamic population size heuristic}
 \usage{
 three_phase_search_anticlustering(
-  x,
+  matrix,
   K,
   N,
   upper_bound = NULL,
@@ -20,7 +20,7 @@ three_phase_search_anticlustering(
 )
 }
 \arguments{
-\item{x}{The data input. Currently just a vector.}
+\item{matrix}{The data input. Currently just a vector.}
 
 \item{K}{How many anticlusters should be created.}
 
@@ -39,7 +39,9 @@ Pseudocode in Algorithm 1).
 Xiao Yang et al. “A three-phase search approach with dynamic population size for solving # nolint
 the maximally diverse grouping problem”. In: European Journal of Operational Research
 302.3 (2022). [SOURCE-CODE: https://raw.githubusercontent.com/toyamaailab/toyamaailab.github.io/main/resource/TPSDP_Code.zip],
- pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003.
+ pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
+
+#' special imports for rccp and eval function
 }
 \author{
 Hannah Hengelbrock \email{Hannah.Hengelbrock@hhu.de}, 

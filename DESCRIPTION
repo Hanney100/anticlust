@@ -66,8 +66,7 @@ Imports:
     Matrix,
     RANN (>= 2.6.0),
     lpSolve,
-    Rcpp (>= 1.0.12)
-LinkingTo: Rcpp
+    Rcpp (>= 1.0.13)
 Suggests: 
     knitr,
     palmerpenguins,
@@ -84,3 +83,5 @@ LazyData: true
 NeedsCompilation: yes
 RoxygenNote: 7.3.2
 SystemRequirements: Rendering the vignette requires pandoc (<https://pandoc.org/>). It is possible to use the gurobi solver, which requires gurobi.
+LinkingTo: 
+    Rcpp
