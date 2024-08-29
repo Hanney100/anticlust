@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // three_phase_search_dynamic_population_size
 Rcpp::List three_phase_search_dynamic_population_size(Rcpp::NumericMatrix matrix, int N, int K, int upper_bound, int lower_bound, int popSize, int time_limit, double theta_max, double theta_min, int beta_min, int LMAX);
-RcppExport SEXP _anticlust_three_phase_search_dynamic_population_size(SEXP matrixSEXP, SEXP NSEXP, SEXP KSEXP, SEXP upper_boundSEXP, SEXP lower_boundSEXP, SEXP popSizeSEXP, SEXP time_limitSEXP, SEXP theta_maxSEXP, SEXP theta_minSEXP, SEXP beta_minSEXP, SEXP LMAXSEXP) {
+RcppExport SEXP _anticlustPackage_three_phase_search_dynamic_population_size(SEXP matrixSEXP, SEXP NSEXP, SEXP KSEXP, SEXP upper_boundSEXP, SEXP lower_boundSEXP, SEXP popSizeSEXP, SEXP time_limitSEXP, SEXP theta_maxSEXP, SEXP theta_minSEXP, SEXP beta_minSEXP, SEXP LMAXSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -30,4 +30,14 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(three_phase_search_dynamic_population_size(matrix, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_anticlustPackage_three_phase_search_dynamic_population_size", (DL_FUNC) &_anticlustPackage_three_phase_search_dynamic_population_size, 11},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_anticlustPackage(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

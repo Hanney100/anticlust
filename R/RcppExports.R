@@ -2,6 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 three_phase_search_dynamic_population_size <- function(matrix, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX) {
-    .Call(`_anticlust_three_phase_search_dynamic_population_size`, matrix, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX)
+    .Call(`_anticlustPackage_three_phase_search_dynamic_population_size`, matrix, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX)
 }
 
