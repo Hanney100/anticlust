@@ -6,6 +6,7 @@ on:
       - main
       - master
       - github_actions
+      - test_tpspd
   pull_request:
     branches:
       - main
