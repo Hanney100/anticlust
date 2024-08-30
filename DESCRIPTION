@@ -1,5 +1,5 @@
 Type: Package
-Package: anticlust
+Package: anticlustPackage
 Title: Subset Partitioning via Anticlustering
 Version: 0.8.7
 Authors@R: c(

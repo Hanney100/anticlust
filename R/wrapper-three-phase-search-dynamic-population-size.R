@@ -39,14 +39,12 @@
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
 #' #' special imports for rccp and eval function
-#' @rawNamespace importFrom(Rcpp, evalCpp)
-#' @rawNamespace exportPattern("^[[:alpha:]]+")
 three_phase_search_anticlustering <- function(matrix, K, N,
     upper_bound  = NULL, lower_bound  = NULL, popSize = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
 
-  
-    print("Current N:", N)
-    print("Current K:", K)
+
+    cat("Current N:", N, "\n")
+    cat("Current K:", K, "\n")
     
     if (is.null(matrix)) {
       cat("x is NULL\n")
@@ -62,8 +60,8 @@ three_phase_search_anticlustering <- function(matrix, K, N,
        upper_bound <- K
     } 
 
-     print("Current Upper Bound:", upper_bound)
-     print("Current Lower Bound:", lower_bound)
+    cat("Current Upper Bound:", upper_bound, "\n")
+    cat("Current Lower Bound:", lower_bound, "\n")
     
     if (N <= 400  & is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {
     	theta_max  <- 1.2

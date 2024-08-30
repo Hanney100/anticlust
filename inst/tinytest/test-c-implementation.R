@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 set.seed(123)
 N <- sample(40:80, size = 1)
@@ -131,3 +131,4 @@ optimized_clusters2 <- anticlustering(
   objective = "dispersion"
 )
 expect_true(all(optimized_clusters == optimized_clusters2))
+
