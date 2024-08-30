@@ -32,12 +32,18 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+        sudo apt-get install -y libglpk-dev
 
+    - name: Install system dependencies on macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install gfortran gcc
+      
     - name: Install dependencies
       run: |
-        install.packages(c("remotes", "rcmdcheck", "Rglpk", "Rsymphony"))
+        install.packages(c("remotes", "rcmdcheck"))
         remotes::install_deps(dependencies = TRUE)
+        install.packages(c("Rsymphony", "Rglpk"))
       shell: Rscript {0}  
 
     - name: Build and install the package
@@ -52,8 +58,11 @@ jobs:
 
     - name: Check package
       run: |
-        rcmdcheck::rcmdcheck(args = "--no-manual --ignore-vignettes", build_args = "--no-build-vignettes", error_on = "error")
+        rcmdcheck::rcmdcheck(args = "--no-manual", build_args = "--no-build-vignettes", error_on = "error")
       shell: Rscript {0}
+      env:
+        _R_CHECK_FORCE_SUGGESTS_: false
+
 
     - name: Run tinytest
       run: |
