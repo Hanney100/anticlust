@@ -32,7 +32,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libglpk-dev gfortran
+        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev build-essential libglpk-dev coinor-libsymphony-dev
 
     - name: Install dependencies
       run: |
