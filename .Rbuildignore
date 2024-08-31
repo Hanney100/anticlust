@@ -11,6 +11,7 @@ docs/*
 README.md
 NEWS.md
 anticlust.kdev4
+anticlustPackage.kdev4
 .kdev4/*
 LICENSE.md
 /*.tar.gz

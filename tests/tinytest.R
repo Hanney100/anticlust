@@ -1,6 +1,6 @@
 
 if ( requireNamespace("tinytest", quietly=TRUE) ){
   library(tinytest)
-  library(anticlust)
+  library(anticlustPackage)
   tinytest::test_package("anticlust")
 }

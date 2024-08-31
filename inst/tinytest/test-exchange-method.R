@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # fast exchange and exchange functions yield the same results - kmeans"
 # for K = 2
@@ -30,7 +30,7 @@ K <- 2
 clusters <- rep(1:K, 5)
 features <- matrix(rnorm(K * 10), ncol = 2)
 ac <- anticlustering(features, K = clusters, objective = diversity_objective)
-ac_fast <- anticlust:::fast_exchange_dist(as.matrix(dist(features)), clusters, NULL)
+ac_fast <- anticlustPackage:::fast_exchange_dist(as.matrix(dist(features)), clusters, NULL)
 expect_equal(all(ac == ac_fast), TRUE)
 
 # for K = 3
@@ -38,7 +38,7 @@ K <- 3
 clusters <- rep(1:K, 5)
 features <- matrix(rnorm(K * 10), ncol = 2)
 ac <- anticlustering(features, K = clusters, objective = diversity_objective)
-ac_fast <- anticlust:::fast_exchange_dist(as.matrix(dist(features)), clusters, NULL)
+ac_fast <- anticlustPackage:::fast_exchange_dist(as.matrix(dist(features)), clusters, NULL)
 expect_equal(all(ac == ac_fast), TRUE)
 
 # for K = 4
@@ -46,7 +46,7 @@ K <- 4
 clusters <- rep(1:K, 5)
 features <- matrix(rnorm(K * 10), ncol = 2)
 ac <- anticlustering(features, K = clusters, objective = diversity_objective)
-ac_fast <- anticlust:::fast_exchange_dist(as.matrix(dist(features)), clusters, NULL)
+ac_fast <- anticlustPackage:::fast_exchange_dist(as.matrix(dist(features)), clusters, NULL)
 expect_equal(all(ac == ac_fast), TRUE)
 
 ## Test preclustering restrictions

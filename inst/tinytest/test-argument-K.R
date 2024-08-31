@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # Test standard usage: K = number of groups
 anticlusters <- anticlustering(

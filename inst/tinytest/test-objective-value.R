@@ -1,6 +1,6 @@
 
 
-library("anticlust")
+library("anticlustPackage")
 
 # objective value for variance criterion is computed correctly
 for (m in 1:4) {
@@ -25,8 +25,8 @@ for (k in 1:nrow(conditions)) {
   n_elements <- p_anticlusters * 3 # n must be multiplier of p
   features <- matrix(rnorm(n_elements * m_features), ncol = m_features)
   distances <- as.matrix(dist(features))
-  ilp <- anticlust:::anticlustering_ilp(distances, p_anticlusters)
-  solution <- anticlust:::solve_ilp(ilp, "min")
-  anticlusters <- anticlust:::ilp_to_groups(solution, n_elements)
-  expect_equal(solution$obj, anticlust:::diversity_objective_(anticlusters, features))
+  ilp <- anticlustPackage:::anticlustering_ilp(distances, p_anticlusters)
+  solution <- anticlustPackage:::solve_ilp(ilp, "min")
+  anticlusters <- anticlustPackage:::ilp_to_groups(solution, n_elements)
+  expect_equal(solution$obj, anticlustPackage:::diversity_objective_(anticlusters, features))
 }

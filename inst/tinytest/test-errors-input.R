@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # exported function cannot be used with NA"
 data(iris)

@@ -1,6 +1,6 @@
 
 
-library("anticlust")
+library("anticlustPackage")
 
 for (M in 1:4) {
   for (K in 2:5) {
@@ -10,8 +10,8 @@ for (M in 1:4) {
       distances <- as.matrix(dist(features))
       clusters <- sample(rep(1:K, N/K))
       
-      objective <- anticlust:::diversity_objective_(clusters, distances)
-      objective2 <- anticlust:::diversity_objective_(clusters, features)
+      objective <- anticlustPackage:::diversity_objective_(clusters, distances)
+      objective2 <- anticlustPackage:::diversity_objective_(clusters, features)
       expect_equal(objective, objective2)
       
       # Swap two items and check objective
@@ -20,11 +20,11 @@ for (M in 1:4) {
       swap2 <- which(clusters == to_swap[2])[1]
       
       # Method 1: As in specialized exchange method for anticluster editing
-      selected <- anticlust:::selection_matrix_from_clusters(clusters)
-      obj1 <- anticlust:::update_objective_distance(distances, selected, swap1, swap2, objective)
+      selected <- anticlustPackage:::selection_matrix_from_clusters(clusters)
+      obj1 <- anticlustPackage:::update_objective_distance(distances, selected, swap1, swap2, objective)
       
       # Method 2: As in generic exchange method
-      obj2 <- anticlust:::update_objective_generic(distances, clusters, swap1, swap2, diversity_objective)
+      obj2 <- anticlustPackage:::update_objective_generic(distances, clusters, swap1, swap2, diversity_objective)
       expect_equal(obj1, obj2)
       # note, this DOES NOT always work:
       # expect_true(obj1 == obj2) # floating points =/

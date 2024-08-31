@@ -1,6 +1,6 @@
 
 
-library("anticlust")
+library("anticlustPackage")
 
 # Matching function behaves correctly with `p` argument
 # generate some random data
@@ -204,16 +204,16 @@ for (most_extreme in c(TRUE, FALSE)) {
     for (j in c("p", "groups")) {
       if (j == "p") {
         matches <- matching(df, p = p, match_extreme_first = most_extreme)
-        first_target <- FUN(anticlust:::distances_from_centroid(data))
+        first_target <- FUN(anticlustPackage:::distances_from_centroid(data))
         target_group <- FALSE
       } else {
-        groups <- anticlust:::to_numeric(sample(1:p, size = n, replace = TRUE))
+        groups <- anticlustPackage:::to_numeric(sample(1:p, size = n, replace = TRUE))
         while (any(table(groups) < 2) || length(unique(table(groups))) == 1) {
           groups <- sample(1:p, size = n, replace = TRUE)
         }
-        groups <- anticlust:::merge_into_one_variable(groups)
+        groups <- anticlustPackage:::merge_into_one_variable(groups)
         matches <- matching(df, match_between = groups, match_extreme_first = most_extreme)
-        centroid_distances <- anticlust:::distances_from_centroid(data)
+        centroid_distances <- anticlustPackage:::distances_from_centroid(data)
         smallest_group <- which.min(table(groups))
         # select index of element in smallest group based on distance to centroid
         target_group <- groups == smallest_group

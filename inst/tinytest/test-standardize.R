@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # standardize argument only works for intended input
 expect_error(

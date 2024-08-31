@@ -1,4 +1,4 @@
-library("anticlust")
+library("anticlustPackaget")
 
 
 ## What data structures does k-means use?
@@ -33,7 +33,7 @@ for (m in 1:4) {
     n_elements <- p * 3 # n-elements must be multiplier of p
     features <- matrix(rnorm(n_elements * m_features), ncol = m_features)
     anticlusters <- rep(1:p_anticlusters, n_elements/p_anticlusters)
-    centers  <- anticlust:::cluster_centers(features, anticlusters)
+    centers  <- anticlustPackage:::cluster_centers(features, anticlusters)
     ## Check output of cluster_centers
     expect_equal(inherits(centers, "matrix"), TRUE)
     # Matrix of distances should have p rows
@@ -47,7 +47,7 @@ for (m in 1:4) {
     }
     
     ## Now also check if distances to cluster centers are computed correctly
-    distances <- anticlust:::dist_from_centers(features, centers, squared = FALSE)
+    distances <- anticlustPackage:::dist_from_centers(features, centers, squared = FALSE)
     expect_equal(inherits(centers, "matrix"), TRUE)
     expect_equal(dim(distances)[1], n_elements)
     expect_equal(dim(distances)[2], p_anticlusters)

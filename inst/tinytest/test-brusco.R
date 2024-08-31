@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # Test standard usage: K = number of groups
 anticlusters <- anticlustering(
@@ -204,7 +204,7 @@ average_diversities <- c()
 diversities <- c()
 dispersions <- c()
 for (i in 1:nrow(a)) {
-  average_diversities[i] <- anticlust:::weighted_diversity_objective_(kmeans_distances, a[i, ], table(a[i, ]))
+  average_diversities[i] <- anticlustPackage:::weighted_diversity_objective_(kmeans_distances, a[i, ], table(a[i, ]))
   diversities[i] <- diversity_objective(kmeans_distances, a[i, ])
 }
 

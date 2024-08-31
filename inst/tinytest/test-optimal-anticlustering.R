@@ -1,5 +1,5 @@
 library(tinytest)
-library(anticlust)
+library(anticlustPackage)
 
 N <- 12
 M <- 5

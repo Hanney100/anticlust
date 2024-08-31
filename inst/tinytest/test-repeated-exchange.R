@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # argument combinations run through (no preclustering / categories)
 methods <- c("exchange", "local-maximum")

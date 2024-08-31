@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # heuristic clustering works for different inputs
 for (m in 1:4) {
@@ -9,9 +9,9 @@ for (m in 1:4) {
     n_elements <- p * 3 # n-elements must be multiplier of p
     features <- matrix(rnorm(n_elements * m_features), ncol = m_features)
     clusters <- balanced_clustering(features, K = p)
-    expect_equal(anticlust:::legal_number_of_clusters(features, clusters), NULL)
+    expect_equal(anticlustPackage:::legal_number_of_clusters(features, clusters), NULL)
     clusters <- balanced_clustering(dist(features), K = p)
-    expect_equal(anticlust:::legal_number_of_clusters(features, clusters), NULL)
+    expect_equal(anticlustPackage:::legal_number_of_clusters(features, clusters), NULL)
   }
 }
 
@@ -30,7 +30,7 @@ for (i in 1:nrow(conditions)) {
     n_preclusters <- n_elements / p_anticlusters
     preclusters <- balanced_clustering(features, K = n_preclusters)
     ## Legal number of preclusters?
-    expect_equal(anticlust:::legal_number_of_clusters(features, preclusters), NULL)
+    expect_equal(anticlustPackage:::legal_number_of_clusters(features, preclusters), NULL)
     ## Expected number of preclusters?
     expect_equal(as.numeric(table(preclusters)[1]), n_elements / n_preclusters)
   }
@@ -45,7 +45,7 @@ for (i in 1:nrow(conditions)) {
     objective = obj_function
   )
   ## Legal number of anticlusters?
-  expect_equal(anticlust:::legal_number_of_clusters(features, anticlusters), NULL)
+  expect_equal(anticlustPackage:::legal_number_of_clusters(features, anticlusters), NULL)
   ## Expected number of anticlusters?
   expect_equal(as.numeric(table(anticlusters)[1]), n_elements / p_anticlusters)
   if (conditions$preclustering[i] == TRUE) {

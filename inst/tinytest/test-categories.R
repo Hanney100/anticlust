@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 N <- 60
 M <- 2
@@ -43,7 +43,7 @@ for (K in 2:3) {
       
       
       ## 3. Are the categories balanced across anticlusters?
-      ac <- categorical_sampling(K = K, categories = anticlust:::merge_into_one_variable(categories))
+      ac <- categorical_sampling(K = K, categories = anticlustPackage:::merge_into_one_variable(categories))
       tab1 <- table(categories[, 1], ac)
       tab2 <- table(categories[, 2], ac)
       tab3 <- table(categories[, 1], categories[, 2], ac)

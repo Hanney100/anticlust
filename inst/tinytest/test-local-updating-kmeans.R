@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # local updating works correctly for k-means anticlustering
 
@@ -14,10 +14,10 @@ to_swap <- sample(1:K, size = 2)
 swap1 <- which(clusters == to_swap[1])[1]
 swap2 <- which(clusters == to_swap[2])[1]
 
-centers <- anticlust:::cluster_centers(features, clusters)
+centers <- anticlustPackage:::cluster_centers(features, clusters)
 
 # Compute clusters after swap
-local_update_centers <- anticlust:::update_centers(
+local_update_centers <- anticlustPackage:::update_centers(
   centers, 
   features, 
   swap1, 
@@ -32,6 +32,6 @@ tmp <- clusters[swap1]
 clusters[swap1] <- clusters[swap2]
 clusters[swap2] <- tmp
 
-centers_after_swap <- anticlust:::cluster_centers(features, clusters)
+centers_after_swap <- anticlustPackage:::cluster_centers(features, clusters)
 
 expect_equal(local_update_centers, centers_after_swap)

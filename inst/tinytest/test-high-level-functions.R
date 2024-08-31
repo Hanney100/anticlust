@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # high level equal sized clustering function runs through
 conditions <- expand.grid(m = 1:4, p = 2:4)
@@ -12,13 +12,13 @@ for (k in 1:nrow(conditions)) {
   clusters_heuristic <- balanced_clustering(features, K = n_clusters,
                                             method = "heuristic")
   ## Check that output is valid
-  expect_equal(anticlust:::legal_number_of_clusters(features, clusters_exact), NULL)
-  expect_equal(anticlust:::legal_number_of_clusters(features, clusters_heuristic), NULL)
+  expect_equal(anticlustPackage:::legal_number_of_clusters(features, clusters_exact), NULL)
+  expect_equal(anticlustPackage:::legal_number_of_clusters(features, clusters_heuristic), NULL)
   
   ## Assert that exact solution has lowest objective (for distance
   ## criterion), allowing for numeric imprecision of ILP solver
-  obj_exact     <- anticlust:::diversity_objective_(clusters_exact, features)
-  obj_heuristic <- anticlust:::diversity_objective_(clusters_heuristic, features)
+  obj_exact     <- anticlustPackage:::diversity_objective_(clusters_exact, features)
+  obj_heuristic <- anticlustPackage:::diversity_objective_(clusters_heuristic, features)
   expect_equal(round(obj_exact, 10) <= round(obj_heuristic, 10), TRUE)
 }
 
@@ -36,12 +36,12 @@ for (k in 1:nrow(conditions)) {
   anticlusters_heuristic <- anticlustering(features,
                                            K = n_clusters)
   ## Check that output is valid
-  expect_equal(anticlust:::legal_number_of_clusters(features, anticlusters_exact), NULL)
-  expect_equal(anticlust:::legal_number_of_clusters(features, anticlusters_heuristic), NULL)
+  expect_equal(anticlustPackage:::legal_number_of_clusters(features, anticlusters_exact), NULL)
+  expect_equal(anticlustPackage:::legal_number_of_clusters(features, anticlusters_heuristic), NULL)
   ## Assert that exact solution has highest objective (for distance
   ## criterion), allowing for numeric imprecision of ILP solver
-  obj_exact     <- anticlust:::diversity_objective_(anticlusters_exact, features)
-  obj_heuristic <- anticlust:::diversity_objective_(anticlusters_heuristic, features)
+  obj_exact     <- anticlustPackage:::diversity_objective_(anticlusters_exact, features)
+  obj_heuristic <- anticlustPackage:::diversity_objective_(anticlusters_heuristic, features)
   expect_equal(round(obj_exact, 10) >= round(obj_heuristic, 10), TRUE)
 }
 
@@ -66,7 +66,7 @@ for (i in 1:nrow(conditions)) {
                                  objective = criterion,
                                  method = method,
                                  preclustering = preclustering)
-  obj <- anticlust:::diversity_objective_(anticlusters, features)
+  obj <- anticlustPackage:::diversity_objective_(anticlusters, features)
   rowname <- ifelse(preclustering, "preclustering", "no_preclustering")
   storage[rowname, method] <- obj
 }

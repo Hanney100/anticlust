@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 # Preclustering works with all criteria
 
 features <- schaper2019[, 3:6]

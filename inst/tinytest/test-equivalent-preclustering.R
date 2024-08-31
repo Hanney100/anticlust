@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # different options for preclustering have the same result - variance objective
 for (M in 1:4) {
@@ -40,7 +40,7 @@ for (M in 1:4) {
     ac3 <- fast_anticlustering(
       features,
       K = categorical_sampling(preclusters, K),
-      exchange_partners = anticlust:::nearest_neighbours(features, N-1, preclusters)
+      exchange_partners = anticlustPackage:::nearest_neighbours(features, N-1, preclusters)
     )
     
     expect_true(all(ac1 == ac2))

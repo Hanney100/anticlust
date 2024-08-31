@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # generate_partitions function correctly removes redundant partitions
 for (K in 2:4) {
@@ -10,7 +10,7 @@ for (K in 2:4) {
     permutations <- generate_partitions(N, K, TRUE)
     partitions   <- generate_partitions(N, K, FALSE)
     # remove duplicates from permutations
-    permutations <- lapply(permutations, anticlust:::order_cluster_vector)
+    permutations <- lapply(permutations, anticlustPackage:::order_cluster_vector)
     permutations <- permutations[!duplicated(permutations)]
     expect_equal(permutations, partitions)
   }

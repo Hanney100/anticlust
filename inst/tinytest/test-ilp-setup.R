@@ -1,6 +1,6 @@
 
 #test setup of ILP
-library("anticlust")
+library("anticlustPackage")
 
 #anticlustering_ilp
 # ILP is set up as expected
@@ -11,7 +11,7 @@ for (k in 1:nrow(conditions)) {
   n_elements <- p_anticlusters * 2 # n must be multiplier of p
   features <- matrix(rnorm(n_elements * m_features), ncol = m_features)
   distances <- as.matrix(dist(features))
-  ilp <- anticlust:::anticlustering_ilp(distances, p_anticlusters)
+  ilp <- anticlustPackage:::anticlustering_ilp(distances, p_anticlusters)
   expect_equal(nrow(ilp$constraints), choose(n_elements, 3) * 3 + n_elements)
   expect_equal(sum(is.na(ilp$constraints)), 0)
   

@@ -1,10 +1,10 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 # Test that k-plus criterion is computed correctly
 set.seed(123)
 
-init <- anticlust:::initialize_clusters(96, 3, NULL)
+init <- anticlustPackage:::initialize_clusters(96, 3, NULL)
 
 df <- schaper2019[, 3:6]
 
@@ -15,7 +15,7 @@ groups1 <- anticlustering(
 )
 
 groups2 <- anticlustering(
-  cbind(df, anticlust:::squared_from_mean(df)),
+  cbind(df, anticlustPackage:::squared_from_mean(df)),
   K = init,
   objective = "variance"
 )
@@ -38,7 +38,7 @@ groups4 <- anticlustering(
 )
 
 groups5 <- anticlustering(
-  scale(cbind(df, anticlust:::squared_from_mean(df))),
+  scale(cbind(df, anticlustPackage:::squared_from_mean(df))),
   K = init,
   objective = "variance",
   standardize = FALSE

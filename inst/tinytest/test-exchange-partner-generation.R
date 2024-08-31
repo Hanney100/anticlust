@@ -1,6 +1,6 @@
 
 
-library("anticlust")
+library("anticlustPackage")
 
 # Exchange partners are generated correctly - no restriction
 clusters <- c(1, 2, 1, 2, 1, 2)
@@ -8,7 +8,7 @@ i <- 1
 group_i <- clusters[i]
 N <- length(clusters)
 categories <- NULL
-partners <- anticlust:::get_exchange_partners(clusters, i, categories)
+partners <- anticlustPackage:::get_exchange_partners(clusters, i, categories)
 expect_equal(all(partners == c(2, 4, 6)), TRUE)
 
 # Exchange partners are generated correctly - categorical restriction
@@ -17,7 +17,7 @@ i <- 1
 group_i <- clusters[i]
 N <- length(clusters)
 categories <- c(1, 1, 1, 1, 2, 2)
-partners <- anticlust:::get_exchange_partners(clusters, i, categories)
+partners <- anticlustPackage:::get_exchange_partners(clusters, i, categories)
 expect_equal(all(partners == c(2, 4)), TRUE)
 
 # Exchange partners are generated correctly - preclustering restriction
@@ -28,7 +28,7 @@ N <- length(clusters)
 # Add a preclustering restriction (this is now just the same as
 # categorical restrictions and does not really make sense here)
 preclusters <- c(1, 1, 2, 2, 3, 3)
-partners <- anticlust:::get_exchange_partners(clusters, i, preclusters)
+partners <- anticlustPackage:::get_exchange_partners(clusters, i, preclusters)
 expect_equal(partners == 2, TRUE)
 
 # Exchange partners are generated correctly - preclustering and categorical restriction
@@ -39,8 +39,8 @@ N <- length(clusters)
 ## Use both restrictions
 categories <- c(1, 1, 1, 1, 2, 2)
 preclusters <- c(1, 2, 2, 1, 3, 3)
-constraints <- anticlust:::merge_into_one_variable(cbind(categories, preclusters))
-partners <- anticlust:::get_exchange_partners(clusters, i, constraints)
+constraints <- anticlustPackage:::merge_into_one_variable(cbind(categories, preclusters))
+partners <- anticlustPackage:::get_exchange_partners(clusters, i, constraints)
 expect_equal(partners == 4, TRUE)
 
 # function that tests that all exchange partners are from the same category
@@ -68,7 +68,7 @@ categories <- sample(1:4, size = N, replace = TRUE)
 ### Using categorical restrictions
 # Case 1: restricted number of exchange partners (i.e., nearest neighbour search)
 
-partners <- anticlust:::nearest_neighbours(
+partners <- anticlustPackage:::nearest_neighbours(
   features = features,
   k_neighbours = k_neighbours,
   categories = categories
@@ -78,14 +78,14 @@ test_idx(partners, categories)
 expect_true(all(lengths(partners) == k_neighbours))
 
 # Case 2: no restriction on number of exchange partners
-partners <- anticlust:::list_idx_by_category(categories)
+partners <- anticlustPackage:::list_idx_by_category(categories)
 test_idx(partners, categories)
 
 ### Not using categorical restrictions
 # Case 1: restricted number of exchange partners (i.e., nearest neighbour search)
-categories <- anticlust:::to_numeric(schaper2019$room)
+categories <- anticlustPackage:::to_numeric(schaper2019$room)
 k_neighbours <- k_neighbours
-partners <- anticlust:::nearest_neighbours(
+partners <- anticlustPackage:::nearest_neighbours(
   features = features,
   k_neighbours = k_neighbours,
   categories = NULL
@@ -95,6 +95,6 @@ expect_true(all(lengths(partners) == k_neighbours))
 # remove_self() function works as intended in exchange partner generation
 expect_true(
   identical(
-    anticlust:::remove_self(list(c(2, 1), c(3, 2), c(4, 3))), list(2, 3, 4)
+    anticlustPackage:::remove_self(list(c(2, 1), c(3, 2), c(4, 3))), list(2, 3, 4)
   )
 )

@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 x <- schaper2019[, 3:6]
 val1 <- optimal_dispersion(x, K = 3)$dispersion
@@ -25,7 +25,7 @@ groups_heuristic <- anticlustering(
 )
 expect_true(dispersion_objective(distances, opt$groups) >= dispersion_objective(distances, groups_heuristic))
 
-expect_true(all(sort(table(opt$groups)) == sort(table(anticlust:::initialize_clusters(N, K, NULL)))))
+expect_true(all(sort(table(opt$groups)) == sort(table(anticlustPackage:::initialize_clusters(N, K, NULL)))))
 
 
 # test for unequal group sizes (groups differ by 1 at most)
@@ -45,7 +45,7 @@ groups_heuristic <- anticlustering(
   repetitions = 10
 )
 expect_true(dispersion_objective(distances, opt$groups) >= dispersion_objective(distances, groups_heuristic))
-expect_true(all(sort(table(opt$groups)) == sort(table(anticlust:::initialize_clusters(N, K, NULL)))))
+expect_true(all(sort(table(opt$groups)) == sort(table(anticlustPackage:::initialize_clusters(N, K, NULL)))))
 
 
 # now "truly" unequal group sizes 

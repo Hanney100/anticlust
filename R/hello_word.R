@@ -1,1 +1,1 @@
-library(anticlust)
+library(anticlustPackage)

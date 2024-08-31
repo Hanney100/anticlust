@@ -1,5 +1,5 @@
 
-library("anticlust")
+library("anticlustPackage")
 
 conditions <- expand.grid(m = 1:4, p = 2)
 for (k in 1:nrow(conditions)) {

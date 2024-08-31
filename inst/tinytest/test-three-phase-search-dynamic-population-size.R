@@ -10,6 +10,7 @@ M <- 5
 K <- 2
 dat <- matrix(rnorm(N * M), ncol = M)
 
+anticlustPackage:::rcpp_hello_world()
+
 result <- anticlustPackage:::three_phase_search_anticlustering(dat, K, N)
 
-anticlustPackage:::rcpp_hello_world()
