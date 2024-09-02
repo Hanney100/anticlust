@@ -51,7 +51,6 @@
 #'
 #' @importFrom Matrix sparseMatrix
 #' @importFrom stats as.dist dist sd
-#' @importFrom Rcpp sourceCpp
 #' 
 #' @useDynLib anticlustPackage, .registration = TRUE
 #'

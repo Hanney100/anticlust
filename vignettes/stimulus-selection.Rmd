@@ -41,7 +41,7 @@ To follow the code in this tutorial, load the `anticlust`
 package first:
 
 ```{r}
-library(anticlust)
+library(anticlustPackage)
 ```
 
 For the examples in this document, we use norming data for a stimulus 

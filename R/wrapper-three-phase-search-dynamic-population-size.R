@@ -39,6 +39,7 @@
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
 #' #' special imports for rccp and eval function
+#' @rawNamespace importFrom(Rcpp,sourceCpp)
 three_phase_search_anticlustering <- function(matrix, K, N,
     upper_bound  = NULL, lower_bound  = NULL, popSize = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
 

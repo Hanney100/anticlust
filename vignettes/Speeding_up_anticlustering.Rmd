@@ -18,7 +18,7 @@ set.seed(1234)
 ```
 
 ```{r setup}
-library(anticlust)
+library(anticlustPackage)
 ```
 
 This vignette documents various ways by which the speed of the anticlustering method implemented in the `anticlust` package can be adjusted. Speedup is particularly useful for large data sets when the default anticlustering algorithm becomes too slow. A fast method may also be desirable for testing purposes, even if the final anticlustering is based on a slower method.
