@@ -86,12 +86,10 @@ void DirectPerturbation(int LMAX, int partition[], int SizeGroup[]);
 int Cmpare(const void *a, const void *b);
 
 void three_phase_search_dynamic_population_size(double *D, 
-                                            double *DT,
                                             int *N,
                                             int *K, 
-                                            int *upper_bound, int *lower_bound, 
-                                            int *result,
-											int	*cost,
+                                            int *upper_bound, 
+                                            int *lower_bound, 
 											int *popSize, 
 											int *time_limit,
 											double *theta_max,

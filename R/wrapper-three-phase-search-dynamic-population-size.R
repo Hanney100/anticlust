@@ -82,7 +82,19 @@ three_phase_search_anticlustering <- function(matrix, K, N,
         else { time_limit  <- 5000 }
     } 
 
-    results <- three_phase_search_dynamic_population_size(matrix, N, K, upper_bound, lower_bound, popSize, time_limit, theta_max, theta_min, beta_min, LMAX)
+     results <- .C("three_phase_search_dynamic_population_size",
+                  D = as.double(matrix),
+                  N = as.integer(N),
+                  K = as.integer(K),
+                  upper_bound = as.integer(upper_bound),
+                  lower_bound = as.integer(lower_bound),
+                  popSize = as.integer(popSize),
+                  time_limit = as.integer(time_limit),
+                  theta_max = as.double(theta_max),
+                  theta_min = as.double(theta_min),
+                  beta_min = as.integer(beta_min),
+                  LMAX = as.integer(LMAX)
+     )
 
     print(results)
 
