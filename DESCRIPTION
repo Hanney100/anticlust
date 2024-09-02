@@ -1,5 +1,5 @@
 Type: Package
-Package: anticlustPackage
+Package: anticlust
 Title: Subset Partitioning via Anticlustering
 Version: 0.8.6.9999.604
 Authors@R: c(
@@ -65,8 +65,7 @@ Depends:
 Imports: 
     Matrix,
     RANN (>= 2.6.0),
-    lpSolve,
-    Rcpp (>= 1.0.13)
+    lpSolve
 Suggests: 
     knitr,
     palmerpenguins,

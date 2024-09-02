@@ -38,9 +38,6 @@
 #' 302.3 (2022). [SOURCE-CODE: https://raw.githubusercontent.com/toyamaailab/toyamaailab.github.io/main/resource/TPSDP_Code.zip],
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
-#' #' special imports for rccp and eval function
-#' @rawNamespace importFrom(Rcpp, evalCpp)
-#' @rawNamespace exportPattern("^[[:alpha:]]+")
 three_phase_search_anticlustering <- function(matrix, K, N,
     upper_bound  = NULL, lower_bound  = NULL, popSize = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
 
