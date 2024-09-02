@@ -6,6 +6,7 @@ on:
       - main
       - master
       - github_actions
+      - tpspd_heurestic
   pull_request:
     branches:
       - main
