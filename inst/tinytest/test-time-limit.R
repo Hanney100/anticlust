@@ -27,10 +27,16 @@ expect_error(
   pattern = "time limit"
 )
 
-expect_error(
-  optimal_anticlustering(data, K, objective = "diversity", solver = "gurobi", time_limit = 1),
-  pattern = "time limit"
-)
+if (requireNamespace("gurobi", quietly = TRUE)) {
+  expect_error(
+    optimal_anticlustering(data, K, objective = "diversity", solver = "gurobi", time_limit = 1),
+    pattern = "time limit"
+  )
+} else {
+  message("Gurobi package not installed. Skipping Gurobi execution.")
+}
+
+
 
 
 ## Dispersion
@@ -56,7 +62,13 @@ expect_error(
   pattern = "time limit"
 )
 
-expect_error(
-  optimal_anticlustering(data, K, objective = "dispersion", solver = "gurobi", time_limit = 1),
-  pattern = "time limit"
-)
+if (requireNamespace("gurobi", quietly = TRUE)) {
+  expect_error(
+    optimal_anticlustering(data, K, objective = "dispersion", solver = "gurobi", time_limit = 1),
+    pattern = "time limit"
+  )
+} else {
+  message("Gurobi package not installed. Skipping Gurobi execution.")
+}
+
+
