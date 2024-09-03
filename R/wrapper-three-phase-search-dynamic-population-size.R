@@ -107,7 +107,6 @@ three_phase_search_anticlustering <- function(x, K, N,
      )
      print(results[["mem_error"]])
      print(results[["cost"]])
-     cat("Cualculated result_vector:", result_vector, "\n")
      
      results[["mem_error"]]
      if (results[["mem_error"]] == 1) {

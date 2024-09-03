@@ -6,7 +6,7 @@
 \title{Three phase search with dynamic population size heuristic}
 \usage{
 three_phase_search_anticlustering(
-  matrix,
+  x,
   K,
   N,
   upper_bound = NULL,
@@ -20,11 +20,11 @@ three_phase_search_anticlustering(
 )
 }
 \arguments{
-\item{matrix}{The data input. Currently just a vector.}
-
 \item{K}{How many anticlusters should be created.}
 
 \item{popSize}{beta_max from paper}
+
+\item{matrix}{The data input. Currently just a vector.}
 
 \item{return}{}
 }

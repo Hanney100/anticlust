@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <R.h>
+#include <Rinternals.h>
 
 
 typedef struct {
@@ -21,9 +22,6 @@ typedef struct {
     int y;
 } Neighborhood;
 
-char *File_Name;
-char *Output_File_Name;
-char *Solution_File;
 int popSize;
 int N, K;  // node number and group number
 double f, f_best;
@@ -111,6 +109,10 @@ void three_phase_search_dynamic_population_size(
   LMAX = *Lmax;
   Time_limit =  *time_limit;
   
+  
+  Rprintf("N is [%d]n", N);
+  Rprintf("K is [%d]", K);
+  
   // Allocate memory for D and DT arrays
   D = (double**)malloc(N * sizeof(double*));
   if (D == NULL) { *mem_error = 1; return; }
@@ -141,17 +143,19 @@ void three_phase_search_dynamic_population_size(
     UB[i] = *upper_bound;  // Assuming upper_bound is a pointer to an int
   }
   
-  //AssignMemory();
+  AssignMemory();
   if (*mem_error == 1) {
     return;
   }
   
-  //BuildNeighbors();
+  BuildNeighbors();
   
-  //SearchAlgorithm();
+  SearchAlgorithm();
   
   //save GS -> solution with result
-  result = GS.p;
+  for (int i = 0; i < N; i++){
+    result[i] = GS.p[i];
+  }
   *cost = GS.cost;
   
   // Remember to free the allocated memory after use
@@ -164,7 +168,7 @@ void three_phase_search_dynamic_population_size(
   free(LB); LB = NULL;
   free(UB); UB = NULL;
   
-  //ReleaseMemory();
+  ReleaseMemory();
 }
 
 
@@ -962,143 +966,129 @@ void One_Move_Update_Delta_Matrix1(int i, int g0, int g1)
 }
 
 
-void AssignMemory() {
-    int i, j;
 
-    p = (int *)malloc(N * sizeof(int));
-    bestp = (int *)malloc(N * sizeof(int));
-    SizeG = (int *)malloc(K * sizeof(int));
-
-    Pop = (Solution *)malloc(popSize * sizeof(Solution));
-    Offs = (Solution *)malloc(popSize * sizeof(Solution));
-
-    Delta_Matrix = (double **)malloc(N * sizeof(double *));
-    for (i = 0; i < N; i++) {
-        Delta_Matrix[i] = (double *)malloc(K * sizeof(double));
-    }
-    Delta_Matrix_p1 = (double **)malloc(N * sizeof(double *));
-    for (i = 0; i < N; i++) {
-        Delta_Matrix_p1[i] = (double *)malloc(K * sizeof(double));
-    }
-    Delta_Matrix_p2 = (double **)malloc(N * sizeof(double *));
-    for (i = 0; i < N; i++) {
-        Delta_Matrix_p2[i] = (double *)malloc(K * sizeof(double));
-    }
-    Delta_Matrix1 = (double **)malloc(N * sizeof(double *));
-    for (i = 0; i < N; i++) {
-        Delta_Matrix1[i] = (double *)malloc(K * sizeof(double));
-    }
-    Delta = (double **)malloc(N * sizeof(double *));
-    for (i = 0; i < N; i++) {
-        Delta[i] = (double *)malloc(K * sizeof(double));
-    }
-    Delta1 = (double **)malloc(N * sizeof(double *));
-    for (i = 0; i < N; i++) {
-        Delta1[i] = (double *)malloc(K * sizeof(double));
-    }
-    gDiv = (double *)malloc(K * sizeof(double));
-    gDiv_p1 = (double *)malloc(K * sizeof(double));
-    gDiv_p2 = (double *)malloc(K * sizeof(double));
-
-    for (i = 0; i < popSize; i++) {
-        Pop[i].p = (int *)malloc(N * sizeof(int));
-        Offs[i].p = (int *)malloc(N * sizeof(int));
-    }
-    for (i = 0; i < popSize; i++) {
-        Pop[i].SizeG = (int *)malloc(K * sizeof(int));
-        Offs[i].SizeG = (int *)malloc(K * sizeof(int));
-    }
-
-    CS.p = (int *)malloc(N * sizeof(int));
-    NS.p = (int *)malloc(N * sizeof(int));
-    GS.p = (int *)malloc(N * sizeof(int));
-    OS.p = (int *)malloc(N * sizeof(int));
-
-    CS.SizeG = (int *)malloc(K * sizeof(int));
-    NS.SizeG = (int *)malloc(K * sizeof(int));
-    GS.SizeG = (int *)malloc(K * sizeof(int));
-    OS.SizeG = (int *)malloc(K * sizeof(int));
-
-    Neighbors = (Neighborhood *)malloc((N * (N - 1) / 2 + N * K) * sizeof(Neighborhood));
-
-    AvgCon = (double **)malloc(K * sizeof(double *));
-    for (i = 0; i < K; i++) {
-        AvgCon[i] = (double *)malloc(K * sizeof(double));
-    }
-    Rd = (int *)malloc(K * sizeof(int));
-    for (i = 0; i < K; i++) {
-        Rd[i] = 0;
-    }
-    UnderLB = (int *)malloc(K * sizeof(int));
-
-    ub = (int *)malloc(K * sizeof(int));
-    LBGroup = (int *)malloc(K * sizeof(int));
-    UBGroup = (int *)malloc(K * sizeof(int));
-    BigThanLB = (int *)malloc(K * sizeof(int));
-    vEle = (int *)malloc(N * sizeof(int));
-    gEle = (int *)malloc(K * sizeof(int));
-    SelectEle = (int *)malloc(N * sizeof(int));
-    SelGroup = (int *)malloc(K * sizeof(int));
-    SelectEleTemp = (int *)malloc(N * sizeof(int));
-    p1 = (int *)malloc(N * sizeof(int));
-    p2 = (int *)malloc(N * sizeof(int));
+void AssignMemory()
+{
+  int i, j;
+  
+  p = (int*)malloc(N * sizeof(int));
+  bestp = (int*)malloc(N * sizeof(int));
+  SizeG = (int*)malloc(K * sizeof(int));
+  
+  Pop = (Solution*)malloc(popSize * sizeof(Solution));
+  Offs = (Solution*)malloc(popSize * sizeof(Solution));
+  
+  Delta_Matrix = (double**)malloc(N * sizeof(double*));
+  for (i = 0; i < N; i++) Delta_Matrix[i] = (double*)malloc(K * sizeof(double));
+  Delta_Matrix_p1 = (double**)malloc(N * sizeof(double*));
+  for (i = 0; i < N; i++) Delta_Matrix_p1[i] = (double*)malloc(K * sizeof(double));
+  Delta_Matrix_p2 = (double**)malloc(N * sizeof(double*));
+  for (i = 0; i < N; i++) Delta_Matrix_p2[i] = (double*)malloc(K * sizeof(double));
+  Delta_Matrix1 = (double**)malloc(N * sizeof(double*));
+  for (i = 0; i < N; i++) Delta_Matrix1[i] = (double*)malloc(K * sizeof(double));
+  gDiv = (double*)malloc(K * sizeof(double));
+  gDiv_p1 = (double*)malloc(K * sizeof(double));
+  gDiv_p2 = (double*)malloc(K * sizeof(double));
+  
+  Delta = (double**)malloc(N * sizeof(double*));
+  for (i = 0; i < N; i++) Delta[i] = (double*)malloc(K * sizeof(double));
+  
+  Delta1 = (double**)malloc(N * sizeof(double*));
+  for (i = 0; i < N; i++) Delta1[i] = (double*)malloc(K * sizeof(double));
+  
+  for (i = 0; i < popSize; i++) {
+    Pop[i].p = (int*)malloc(N * sizeof(int));
+    Offs[i].p = (int*)malloc(N * sizeof(int));
+  }
+  
+  for (i = 0; i < popSize; i++) {
+    Pop[i].SizeG = (int*)malloc(K * sizeof(int));
+    Offs[i].SizeG = (int*)malloc(K * sizeof(int));
+  }
+  
+  CS.p = (int*)malloc(N * sizeof(int));
+  NS.p = (int*)malloc(N * sizeof(int));
+  GS.p = (int*)malloc(N * sizeof(int));
+  OS.p = (int*)malloc(N * sizeof(int));
+  
+  CS.SizeG = (int*)malloc(K * sizeof(int));
+  NS.SizeG = (int*)malloc(K * sizeof(int));
+  GS.SizeG = (int*)malloc(K * sizeof(int));
+  OS.SizeG = (int*)malloc(K * sizeof(int));
+  
+  Neighbors = (Neighborhood*)malloc((N * (N - 1) / 2 + N * K) * sizeof(Neighborhood));
+  
+  AvgCon = (double**)malloc(K * sizeof(double*));
+  for (i = 0; i < K; i++) AvgCon[i] = (double*)malloc(K * sizeof(double));
+  Rd = (int*)malloc(K * sizeof(int));
+  for (i = 0; i < K; i++) Rd[i] = 0;
+  UnderLB = (int*)malloc(K * sizeof(int));
+  
+  ub = (int*)malloc(K * sizeof(int));
+  LBGroup = (int*)malloc(K * sizeof(int));
+  UBGroup = (int*)malloc(K * sizeof(int));
+  BigThanLB = (int*)malloc(K * sizeof(int));
+  vEle = (int*)malloc(N * sizeof(int));
+  gEle = (int*)malloc(K * sizeof(int));
+  SelectEle = (int*)malloc(N * sizeof(int));
+  SelGroup = (int*)malloc(K * sizeof(int));
+  SelectEleTemp = (int*)malloc(N * sizeof(int));
+  p1 = (int*)malloc(N * sizeof(int));
+  p2 = (int*)malloc(N * sizeof(int));
 }
 
-void ReleaseMemory() {
-    int i;
-
-    free(p);
-    free(bestp);
-    free(SizeG);
-
-    free(CS.p);
-    free(CS.SizeG);
-    free(GS.p);
-    free(GS.SizeG);
-    free(NS.p);
-    free(NS.SizeG);
-    free(OS.p);
-    free(OS.SizeG);
-
-    free(LB);
-    free(UB);
-    free(Neighbors);
-
-    for (i = 0; i < N; i++) {
-        free(Delta_Matrix[i]);
-        free(Delta_Matrix1[i]);
-        free(Delta_Matrix_p1[i]);
-        free(Delta_Matrix_p2[i]);
-        free(Delta[i]);
-        free(Delta1[i]);
-        free(D[i]);
-        free(DT[i]);
-    }
-    for (i = 0; i < K; i++) {
-        free(AvgCon[i]);
-    }
-
-    for (i = 0; i < popSize; i++) {
-        free(Pop[i].p);
-        free(Offs[i].p);
-        free(Pop[i].SizeG);
-        free(Offs[i].SizeG);
-    }
-    free(Rd);
-    free(UnderLB);
-    free(SelectEle);
-    free(SelGroup);
-    free(SelectEleTemp);
-    free(p1);
-    free(p2);
-    free(gDiv);
-    free(gDiv_p1);
-    free(gDiv_p2);
-
-    free(ub);
-    free(LBGroup);
-    free(UBGroup);
-    free(BigThanLB);
-    free(vEle);
-    free(gEle);
+void ReleaseMemory()
+{
+  int i;
+  
+  free(p); p = NULL;
+  free(bestp); bestp = NULL;
+  free(SizeG); SizeG = NULL;
+  
+  free(CS.p); CS.p = NULL;
+  free(CS.SizeG); CS.SizeG = NULL;
+  free(GS.p); GS.p = NULL;
+  free(GS.SizeG); GS.SizeG = NULL;
+  free(NS.p); NS.p = NULL;
+  free(NS.SizeG); NS.SizeG = NULL;
+  free(OS.p); OS.p = NULL;
+  free(OS.SizeG); OS.SizeG = NULL;
+  
+  free(LB); LB = NULL;
+  free(UB); UB = NULL;
+  free(Neighbors); Neighbors = NULL;
+  
+  for (i = 0; i < N; i++)
+  {
+    free(Delta_Matrix[i]); Delta_Matrix[i] = NULL;
+    free(Delta_Matrix1[i]); Delta_Matrix1[i] = NULL;
+    free(Delta_Matrix_p1[i]); Delta_Matrix_p1[i] = NULL;
+    free(Delta_Matrix_p2[i]); Delta_Matrix_p2[i] = NULL;
+    free(Delta[i]); Delta[i] = NULL;
+    free(Delta1[i]); Delta1[i] = NULL;
+  }
+  free(Delta_Matrix); Delta_Matrix = NULL;
+  free(Delta_Matrix_p1); Delta_Matrix_p1 = NULL;
+  free(Delta_Matrix_p2); Delta_Matrix_p2 = NULL;
+  free(Delta_Matrix1); Delta_Matrix1 = NULL;
+  free(Delta); Delta = NULL;
+  free(Delta1); Delta1 = NULL;
+  free(gDiv); gDiv = NULL;
+  free(gDiv_p1); gDiv_p1 = NULL;
+  free(gDiv_p2); gDiv_p2 = NULL;
+  free(AvgCon); AvgCon = NULL;
+  free(Rd); Rd = NULL;
+  free(UnderLB); UnderLB = NULL;
+  free(ub); ub = NULL;
+  free(LBGroup); LBGroup = NULL;
+  free(UBGroup); UBGroup = NULL;
+  free(BigThanLB); BigThanLB = NULL;
+  free(vEle); vEle = NULL;
+  free(gEle); gEle = NULL;
+  free(SelectEle); SelectEle = NULL;
+  free(SelGroup); SelGroup = NULL;
+  free(SelectEleTemp); SelectEleTemp = NULL;
+  free(p1); p1 = NULL;
+  free(p2); p2 = NULL;
 }
+
