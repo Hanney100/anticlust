@@ -15,9 +15,11 @@ ergebnis <- anticlust:::three_phase_search_anticlustering(dat, K, N)
 ergebnis2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
 #diversity_objective(distances, ergebnis3)
 
-#ergebnis3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "gurobi")
+ergebnis3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "lpSolve")
 
 #diversity_objective(distances, ergebnis3)
 print(ergebnis)
 print(ergebnis2)
+print(ergebnis3)
 
+ergebnis$result

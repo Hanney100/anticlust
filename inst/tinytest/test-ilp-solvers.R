@@ -22,14 +22,20 @@ symphony <- optimal_anticlustering(data, K, objective = "diversity", solver = "s
 Sys.time() - start
 val3 <- diversity_objective(data, symphony)
 
-start <- Sys.time()
-gurobi <- optimal_anticlustering(data, K, objective = "diversity", solver = "gurobi") 
-Sys.time() - start
-val4 <- diversity_objective(data, gurobi)
+if (requireNamespace("gurobi", quietly = TRUE)) {
+  start <- Sys.time()
+  gurobi <- optimal_anticlustering(data, K, objective = "diversity", solver = "gurobi") 
+  Sys.time() - start
+  val4 <- diversity_objective(data, gurobi)
+  expect_equal(val1, val4)
+} else {
+  message("Gurobi package not installed. Skipping Gurobi execution.")
+}
+
 
 expect_equal(val1, val2)
 expect_equal(val1, val3)
-expect_equal(val1, val4)
+
 
 
 ### Test solvers for maximum dispersion
@@ -44,16 +50,22 @@ Sys.time() - start
 start <- Sys.time()
 val3 <- optimal_dispersion(x, K = 3, solver = "symphony")$dispersion
 Sys.time() - start
-start <- Sys.time()
-val4 <- optimal_dispersion(x, K = 3, solver = "gurobi")$dispersion
 Sys.time() - start
 start <- Sys.time()
 val5 <- optimal_dispersion(x, K = 3, solver = "Gecode")$dispersion
 Sys.time() - start
 
+if (requireNamespace("gurobi", quietly = TRUE)) {
+  start <- Sys.time()
+  val4 <- optimal_dispersion(x, K = 3, solver = "gurobi")$dispersion
+  expect_equal(val1, val4)
+} else {
+  message("Gurobi package not installed. Skipping Gurobi execution.")
+}
+
+
 expect_equal(val1, val2)
 expect_equal(val1, val3)
-expect_equal(val1, val4)
 expect_equal(val1, val5)
 
 ### Test solvers for balanced clustering (i.e., reversed maximum - minimum - diversity)
@@ -73,13 +85,17 @@ val2 <- diversity_objective(data, glpk)
 symphony <- balanced_clustering(data, K, method = "ilp", solver = "symphony")
 val3 <- diversity_objective(data, symphony)
 
-gurobi <- balanced_clustering(data, K, method = "ilp", solver = "gurobi")
-val4 <- diversity_objective(data, gurobi)
+if (requireNamespace("gurobi", quietly = TRUE)) {
+  gurobi <- balanced_clustering(data, K, method = "ilp", solver = "gurobi")
+  val4 <- diversity_objective(data, gurobi)
+  expect_equal(val1, val4)
+} else {
+  message("Gurobi package not installed. Skipping Gurobi execution.")
+}
 
 
 expect_equal(val1, val2)
 expect_equal(val1, val3)
-expect_equal(val1, val4)
 
 
 ### Test solvers for weighted cluster editing (i.e., reversed max diversity without group restrictions)
@@ -104,11 +120,16 @@ symphony <- wce(agreements, solver = "symphony")
 Sys.time() - start
 val3 <- diversity_objective(agreements, symphony)
 
-start <- Sys.time()
-gurobi <- wce(agreements, solver = "gurobi")
-Sys.time() - start
-val4 <- diversity_objective(agreements, gurobi)
+if (requireNamespace("gurobi", quietly = TRUE)) {
+  start <- Sys.time()
+  gurobi <- wce(agreements, solver = "gurobi")
+  Sys.time() - start
+  val4 <- diversity_objective(agreements, gurobi)
+  expect_equal(val1, val4)
+} else {
+  message("Gurobi package not installed. Skipping Gurobi execution.")
+}
+
 
 expect_equal(val1, val2)
 expect_equal(val1, val3)
-expect_equal(val1, val4)
