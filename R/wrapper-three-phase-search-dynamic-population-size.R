@@ -38,29 +38,31 @@
 #' 302.3 (2022). [SOURCE-CODE: https://raw.githubusercontent.com/toyamaailab/toyamaailab.github.io/main/resource/TPSDP_Code.zip],
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
-three_phase_search_anticlustering <- function(matrix, K, N,
+three_phase_search_anticlustering <- function(x, K, N,
     upper_bound  = NULL, lower_bound  = NULL, popSize = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
 
+    #input_validation_threephase_search(matrix, K)
+    distances <- convert_to_distances(x) 
+    cat("Current distances:", distances, "\n")
   
-    print("Current N:", N)
-    print("Current K:", K)
+    cat("Current N:", N, "\n")
+    cat("Current K:", K, "\n")
     
-    if (is.null(matrix)) {
+    if (is.null(x)) {
       cat("x is NULL\n")
     } else {
-      cat("Current x:", matrix, "\n")
+      cat("Current x:", x, "\n")
     }
     
  
     if (is.null(lower_bound)) {
-       lower_bound <- K
+       lower_bound <-  round(N/K)
     } 
     if (is.null(upper_bound)) {
-       upper_bound <- K
+       upper_bound <-  round(N/K)
     } 
-
-     print("Current Upper Bound:", upper_bound)
-     print("Current Lower Bound:", lower_bound)
+     cat("Current Upper Bound:", upper_bound, "\n")
+     cat("Current Lower Bound:", lower_bound, "\n")
     
     if (N <= 400  & is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {
     	theta_max  <- 1.2
@@ -82,22 +84,45 @@ three_phase_search_anticlustering <- function(matrix, K, N,
         else { time_limit  <- 5000 }
     } 
 
+     # create empty matrix for results to use in C
+     result_vector = numeric(N)
+     cat("Current result_vector:", result_vector, "\n")
+     
      results <- .C("three_phase_search_dynamic_population_size",
-                  D = as.double(matrix),
-                  N = as.integer(N),
-                  K = as.integer(K),
+                  distances = as.double(distances),
+                  N_in = as.integer(N),
+                  K_in = as.integer(K),
                   upper_bound = as.integer(upper_bound),
                   lower_bound = as.integer(lower_bound),
-                  popSize = as.integer(popSize),
+                  Beta_max = as.integer(popSize),
                   time_limit = as.integer(time_limit),
-                  theta_max = as.double(theta_max),
-                  theta_min = as.double(theta_min),
-                  beta_min = as.integer(beta_min),
-                  LMAX = as.integer(LMAX)
+                  Theta_max = as.double(theta_max),
+                  Theta_min = as.double(theta_min),
+                  Beta_min = as.integer(beta_min),
+                  Lmax = as.integer(LMAX),
+                  result = as.integer(result_vector),
+                  cost = as.double(0.0),
+                  mem_error = as.integer(0),
+                  PACKAGE = "anticlust"
      )
-
-    print(results)
+     print(results[["mem_error"]])
+     print(results[["cost"]])
+     cat("Cualculated result_vector:", result_vector, "\n")
+     
+     results[["mem_error"]]
+     if (results[["mem_error"]] == 1) {
+       stop("Could not allocate enough memory.")
+     }
 
     return(results)
 
+}
+
+input_validation_threephase_search <- function(x, K) {
+  
+  return(input_validation_anticlustering(
+    x, K, objective = "diversity", method = "brusco", 
+    preclustering = FALSE, categories = NULL,
+    repetitions = 1, standardize = FALSE
+  ))
 }

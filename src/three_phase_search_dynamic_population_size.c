@@ -76,6 +76,8 @@ void Build_Delta_Matrix(void);
 void Build_GroupDiv_For_Crossover(void);
 void AssignMemory();
 void ReleaseMemory();
+void BuildNeighbors();
+void SearchAlgorithm();
 void InitialSol(Solution *S);
 void StrongPerturbation(int L, int partition[], int SizeGroup[]);
 void RandLS(int partition[], int SizeGroup[], double* cost);
@@ -85,19 +87,84 @@ void RandomInitiaSol(int p[], int SizeG[]);
 void DirectPerturbation(int LMAX, int partition[], int SizeGroup[]);
 int Cmpare(const void *a, const void *b);
 
-void three_phase_search_dynamic_population_size(double *D, 
-                                            int *N,
-                                            int *K, 
-                                            int *upper_bound, 
-                                            int *lower_bound, 
-											int *popSize, 
+void three_phase_search_dynamic_population_size(
+                      double *distances, 
+                      int *N_in,
+                      int *K_in, 
+                      int *upper_bound, 
+                      int *lower_bound, 
+											int *Beta_max, 
 											int *time_limit,
-											double *theta_max,
-											double *theta_min,
-											int *beta_min,
-											int *LMAX
-                                           ) {
-
+											double *Theta_max,
+											double *Theta_min,
+											int *Beta_min,
+											int *Lmax,
+											int *result,
+											double *cost,
+											int *mem_error) {
+  N = *N_in;
+  K = *K_in;
+  popSize = *Beta_max;  //beta_max in algortihm
+  theta = *Theta_max;
+  theta_max = *Theta_max;
+  beta_min = *Beta_min;
+  LMAX = *Lmax;
+  Time_limit =  *time_limit;
+  
+  // Allocate memory for D and DT arrays
+  D = (double**)malloc(N * sizeof(double*));
+  if (D == NULL) { *mem_error = 1; return; }
+  DT = (double**)malloc(N * sizeof(double*));
+  if (DT == NULL) { *mem_error = 1; return; }
+  for (int i = 0; i < N; i++) {
+    D[i] = (double*)malloc(N * sizeof(double));
+    if (D[i] == NULL) { *mem_error = 1; return; }
+    DT[i] = (double*)malloc(N * sizeof(double));
+    if (DT[i] == NULL) { *mem_error = 1; return; }
+  }
+  
+  // Fill D and DT with values from input
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      D[i][j] = distances[i * N + j];
+      DT[i][j] = 2 * distances[i * N + j];
+    }
+  }
+  
+  // Allocate memory for LB and UB arrays
+  LB = (int*)malloc(K * sizeof(int));
+  if (LB == NULL) { *mem_error = 1; return; }
+  UB = (int*)malloc(K * sizeof(int));
+  if (UB == NULL) { *mem_error = 1; return; }
+  for (int i = 0; i < K; i++) {
+    LB[i] = *lower_bound;  // Assuming lower_bound is a pointer to an int
+    UB[i] = *upper_bound;  // Assuming upper_bound is a pointer to an int
+  }
+  
+  //AssignMemory();
+  if (*mem_error == 1) {
+    return;
+  }
+  
+  //BuildNeighbors();
+  
+  //SearchAlgorithm();
+  
+  //save GS -> solution with result
+  result = GS.p;
+  *cost = GS.cost;
+  
+  // Remember to free the allocated memory after use
+  for (int i = 0; i < N; i++) {
+    free(D[i]); D[i] = NULL;
+    free(DT[i]); DT[i] = NULL;
+  }
+  free(D); D = NULL;
+  free(DT); DT = NULL;
+  free(LB); LB = NULL;
+  free(UB); UB = NULL;
+  
+  //ReleaseMemory();
 }
 
 
@@ -471,7 +538,7 @@ void Crossover(int partition1[], int partition2[], int sc[], int scSizeGroup[]) 
     int lengthSE, lengthSG;
     int flag;
     int num;
-    int pickG;
+    int pickG = -1;
     int count;
     int pickV;
     int sum;
