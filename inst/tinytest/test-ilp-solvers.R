@@ -1,4 +1,3 @@
-
 ### Test solvers for maximum diversity
 library(anticlust)
 library(tinytest)
@@ -52,8 +51,6 @@ val3 <- optimal_dispersion(x, K = 3, solver = "symphony")$dispersion
 Sys.time() - start
 Sys.time() - start
 start <- Sys.time()
-val5 <- optimal_dispersion(x, K = 3, solver = "Gecode")$dispersion
-Sys.time() - start
 
 if (requireNamespace("gurobi", quietly = TRUE)) {
   start <- Sys.time()
@@ -63,10 +60,17 @@ if (requireNamespace("gurobi", quietly = TRUE)) {
   message("Gurobi package not installed. Skipping Gurobi execution.")
 }
 
+if (requireNamespace("Gecode", quietly = TRUE)) {
+  val5 <- optimal_dispersion(x, K = 3, solver = "Gecode")$dispersion
+  Sys.time() - start
+  expect_equal(val1, val5)
+} else {
+  message("Gurobi package not installed. Skipping Gurobi execution.")
+}
+
 
 expect_equal(val1, val2)
 expect_equal(val1, val3)
-expect_equal(val1, val5)
 
 ### Test solvers for balanced clustering (i.e., reversed maximum - minimum - diversity)
 
@@ -133,3 +137,4 @@ if (requireNamespace("gurobi", quietly = TRUE)) {
 
 expect_equal(val1, val2)
 expect_equal(val1, val3)
+
