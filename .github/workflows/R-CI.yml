@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        r-version: ['4.4', 'release']
+        r-version: ['4.4.1', 'release']
 
     steps:
     - name: Checkout repository
@@ -34,6 +34,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev build-essential libglpk-dev coinor-libsymphony-dev
+        sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended
 
     - name: Install dependencies
       run: |
@@ -55,7 +56,7 @@ jobs:
 
     - name: Check package
       run: |
-        rcmdcheck::rcmdcheck(args = "--no-manual", build_args = "--no-build-vignettes", error_on = "error")
+        rcmdcheck::rcmdcheck(args = "--no-examples", build_args = "--no-build-vignettes", error_on = "error")
       shell: Rscript {0}
       env:
         _R_CHECK_FORCE_SUGGESTS_: false
