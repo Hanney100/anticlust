@@ -70,10 +70,10 @@ three_phase_search_anticlustering <- function(x, K, N,
     distances <- convert_to_distances(x) 
  
     if (is.null(lower_bound)) {
-       lower_bound <- round(N/K)
+       lower_bound <- floor(N/K)
     } 
     if (is.null(upper_bound)) {
-       upper_bound <- round(N/K)
+       upper_bound <- ceiling(N/K)
     } 
     
     if (N <= 400  & is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {

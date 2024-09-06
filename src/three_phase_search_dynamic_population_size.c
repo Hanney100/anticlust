@@ -108,10 +108,7 @@ void three_phase_search_dynamic_population_size(
   beta_min = *Beta_min;
   LMAX = *Lmax;
   Time_limit =  *time_limit;
-  
-  
-  Rprintf("N is [%d]n", N);
-  Rprintf("K is [%d]", K);
+
   
   // Allocate memory for D and DT arrays
   D = (double**)malloc(N * sizeof(double*));
