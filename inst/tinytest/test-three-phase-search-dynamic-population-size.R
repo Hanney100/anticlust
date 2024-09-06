@@ -18,42 +18,63 @@ dat <- matrix(rnorm(N * M), ncol = M)
 distances <- dist(dat)
 distances2 <- anticlust:::convert_to_distances(dat) 
 
-results1 <- anticlust:::three_phase_search_anticlustering(dat, K, N)
-result_cluster1 <- results1$result
-diversity1 <- diversity_objective(distances, result_cluster1)
+result_cluster1 <- anticlust:::three_phase_search_anticlustering(distances, K, N)
 
 result_cluster2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
-diversity2 <- diversity_objective(distances,  result_cluster2)
 
 result_cluster3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "lpSolve")
-diversity3 <- diversity_objective(distances,  result_cluster3)
+
+result1 <- convert_to_group_pattern(result_cluster1$result)
+result2 <- convert_to_group_pattern(result_cluster2)
+result3 <- convert_to_group_pattern(result_cluster3)
+
+diversity1 <- diversity_objective(distances, result1)
+diversity2 <- diversity_objective(distances,  result2)
+diversity3 <- diversity_objective(distances,  result3)
 
 expect_equal(diversity1, diversity2)
 expect_equal(diversity2, diversity3)
-expect_true(all(convert_to_group_pattern(result_cluster1) == convert_to_group_pattern(result_cluster2)))
-expect_true(all(result_cluster3 == result_cluster2))
+expect_true(all(result1 == result2))
+expect_true(all(result3 == result2))
+
+result_cluster1$result
+result1
+result2
+result3
+
+### Test more clusters ###
 
 N <- 12
 M <- 2
 K <- 3
 dat <- matrix(rnorm(N * M), ncol = M)
+
+dat <- matrix(rnorm(N * M), ncol = M)
 distances <- dist(dat)
 distances2 <- anticlust:::convert_to_distances(dat) 
 
-ergebnis <- anticlust:::three_phase_search_anticlustering(dat, K, N)
-diversity_objective(distances, ergebnis$result)
+result_cluster1 <- anticlust:::three_phase_search_anticlustering(distances, K, N)
 
-ergebnis2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
-diversity_objective(distances, ergebnis2)
+result_cluster2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
 
-ergebnis3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "lpSolve")
-diversity_objective(distances, ergebnis3)
+result_cluster3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "lpSolve")
 
-print(ergebnis$result)
-print(ergebnis2)
-print(ergebnis3)
+result1 <- convert_to_group_pattern(result_cluster1$result)
+result2 <- convert_to_group_pattern(result_cluster2)
+result3 <- convert_to_group_pattern(result_cluster3)
 
-plot_clusters(dat, clusters = ergebnis$result,within_connection = TRUE, show_axes = TRUE)
-plot_clusters(dat, clusters = ergebnis2, within_connection = TRUE,show_axes = TRUE)
-plot_clusters(dat, clusters = ergebnis3, within_connection = TRUE, show_axes = TRUE)
+diversity1 <- diversity_objective(distances, result1)
+diversity2 <- diversity_objective(distances,  result2)
+diversity3 <- diversity_objective(distances,  result3)
 
+expect_equal(diversity1, diversity2)
+expect_equal(diversity2, diversity3)
+expect_true(all(result1 == result2))
+expect_true(all(result3 == result2))
+
+result_cluster1$result
+result1
+result2
+result_cluster2
+result3
+result_cluster3
