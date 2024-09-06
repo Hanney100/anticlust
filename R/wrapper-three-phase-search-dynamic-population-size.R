@@ -8,14 +8,15 @@
 #' 
 #' 
 #' @param matrix The data input. Currently just a vector.
-#' @param K How many anticlusters should be created. 
-#' @param popSize beta_max from paper
-#' @param beta_min
-#' @param lower_bound
-#' @param upper_bound
-#' @param theta_min
-#' @param theta_max
-#' @param time_limit
+#' @param K Number of anticlusters to be formed.
+#' @param beta_max The algorithm begins with a pool of random initial solutions of size beta_max. 
+#'  Over time, the size of the solution pool decreases linearly until it reaches beta_min.
+#' @param beta_min The minimum solution pool size the algorithm should reach before making a determination.
+#' @param lower_bound Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.
+#' @param upper_bound Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.
+#' @param theta_max Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..
+#' @param theta_min Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..
+#' @param time_limit Maximum execution time of the algorithm (in seconds)
 #' @param return
 #'     
 #' @details
@@ -29,6 +30,30 @@
 #' 
 #' @examples 
 #' 
+#' # Generate some random data
+#' N <- 12
+#' M <- 5
+#' K <- 2
+#' dat <- matrix(rnorm(N * M), ncol = M)
+#' distances <- dist(dat)
+#'
+#' # Perform three hase serach algorithm
+#' ergebnis <- anticlust:::three_phase_search_anticlustering(dat, K, N)
+#'
+#' # Compute objectives funtion
+#' diversity_objective(distances, ergebnis$ergebnis)
+#' 
+#' # Compute comparision function
+#' ergebnis2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
+#' diversity_objective(distances, ergebnis3)
+#' 
+#' # Compare both results
+#' print(ergebnis$result)
+#' print(ergebnis2)
+#' 
+#' plot_clusters(dat, clusters = ergebnis$result,within_connection = TRUE, show_axes = TRUE)
+#' plot_clusters(dat, clusters = ergebnis2, within_connection = TRUE,show_axes = TRUE)
+#' 
 #' @note
 #' 
 #' @references
@@ -39,30 +64,17 @@
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
 three_phase_search_anticlustering <- function(x, K, N,
-    upper_bound  = NULL, lower_bound  = NULL, popSize = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
+    upper_bound  = NULL, lower_bound  = NULL, beta_max = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
 
-    #input_validation_threephase_search(matrix, K)
+    #input_validation_threephase_search(x, K)
     distances <- convert_to_distances(x) 
-    cat("Current distances:", distances, "\n")
-  
-    cat("Current N:", N, "\n")
-    cat("Current K:", K, "\n")
-    
-    if (is.null(x)) {
-      cat("x is NULL\n")
-    } else {
-      cat("Current x:", x, "\n")
-    }
-    
  
     if (is.null(lower_bound)) {
-       lower_bound <-  round(N/K)
+       lower_bound <- round(N/K)
     } 
     if (is.null(upper_bound)) {
-       upper_bound <-  round(N/K)
+       upper_bound <- round(N/K)
     } 
-     cat("Current Upper Bound:", upper_bound, "\n")
-     cat("Current Lower Bound:", lower_bound, "\n")
     
     if (N <= 400  & is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {
     	theta_max  <- 1.2
@@ -84,9 +96,8 @@ three_phase_search_anticlustering <- function(x, K, N,
         else { time_limit  <- 5000 }
     } 
 
-     # create empty matrix for results to use in C
+     # create result vector for results to use in C
      result_vector = numeric(N)
-     cat("Current result_vector:", result_vector, "\n")
      
      results <- .C("three_phase_search_dynamic_population_size",
                   distances = as.double(distances),
@@ -94,7 +105,7 @@ three_phase_search_anticlustering <- function(x, K, N,
                   K_in = as.integer(K),
                   upper_bound = as.integer(upper_bound),
                   lower_bound = as.integer(lower_bound),
-                  Beta_max = as.integer(popSize),
+                  Beta_max = as.integer(beta_max),
                   time_limit = as.integer(time_limit),
                   Theta_max = as.double(theta_max),
                   Theta_min = as.double(theta_min),
@@ -105,16 +116,13 @@ three_phase_search_anticlustering <- function(x, K, N,
                   mem_error = as.integer(0),
                   PACKAGE = "anticlust"
      )
-     print(results[["mem_error"]])
-     print(results[["cost"]])
-     
+
      results[["mem_error"]]
      if (results[["mem_error"]] == 1) {
        stop("Could not allocate enough memory.")
      }
 
     return(results)
-
 }
 
 input_validation_threephase_search <- function(x, K) {

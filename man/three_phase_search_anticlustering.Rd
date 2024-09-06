@@ -20,16 +20,22 @@ three_phase_search_anticlustering(
 )
 }
 \arguments{
-\item{K}{How many anticlusters should be created.}
+\item{K}{Number of anticlusters to be formed.}
 
-\item{upper_bound}{Maximum of elements in one anticluster. By default, it will be of equal size, so number of items/number of clusters}
+\item{upper_bound}{Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.}
 
-\item{lower_bound}{Minimum of elements in one anticluster. By default, it will be of equal size, so number of items/number of clusters}
+\item{lower_bound}{Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.}
 
-\item{beta_max}{The algorithm starts with a pool of random inital solutions of size beta_max. 
-Over time the pool of solution will be reduced until beta_min.}
+\item{beta_max}{The algorithm begins with a pool of random initial solutions of size beta_max. 
+Over time, the size of the solution pool decreases linearly until it reaches beta_min.}
 
-\item{beta_min}{Minimum population size}
+\item{time_limit}{Maximum execution time of the algorithm (in seconds)}
+
+\item{theta_max}{Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..}
+
+\item{theta_min}{Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..}
+
+\item{beta_min}{The minimum solution pool size the algorithm should reach before making a determination.}
 
 \item{matrix}{The data input. Currently just a vector.}
 
