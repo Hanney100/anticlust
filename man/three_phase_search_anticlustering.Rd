@@ -11,7 +11,7 @@ three_phase_search_anticlustering(
   N,
   upper_bound = NULL,
   lower_bound = NULL,
-  popSize = 15,
+  beta_max = 15,
   time_limit = NULL,
   theta_max = NULL,
   theta_min = NULL,
@@ -22,7 +22,14 @@ three_phase_search_anticlustering(
 \arguments{
 \item{K}{How many anticlusters should be created.}
 
-\item{popSize}{beta_max from paper}
+\item{upper_bound}{Maximum of elements in one anticluster. By default, it will be of equal size, so number of items/number of clusters}
+
+\item{lower_bound}{Minimum of elements in one anticluster. By default, it will be of equal size, so number of items/number of clusters}
+
+\item{beta_max}{The algorithm starts with a pool of random inital solutions of size beta_max. 
+Over time the pool of solution will be reduced until beta_min.}
+
+\item{beta_min}{Minimum population size}
 
 \item{matrix}{The data input. Currently just a vector.}
 
@@ -34,6 +41,33 @@ anticlustering by Yang et al. (2022; <doi.org/10.1016/j.ejor.2022.02.003>).
 The description of their algorithm is
 given in Section 2 of their paper (in particular, see the
 Pseudocode in Algorithm 1).
+}
+\examples{
+
+# Generate some random data
+N <- 12
+M <- 5
+K <- 2
+dat <- matrix(rnorm(N * M), ncol = M)
+distances <- dist(dat)
+
+# Perform three hase serach algorithm
+ergebnis <- anticlust:::three_phase_search_anticlustering(dat, K, N)
+
+# Compute objectives funtion
+diversity_objective(distances, ergebnis$ergebnis)
+
+# Compute comparision function
+ergebnis2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
+diversity_objective(distances, ergebnis3)
+
+# Compare both results
+print(ergebnis$result)
+print(ergebnis2)
+
+plot_clusters(dat, clusters = ergebnis$result,within_connection = TRUE, show_axes = TRUE)
+plot_clusters(dat, clusters = ergebnis2, within_connection = TRUE,show_axes = TRUE)
+
 }
 \references{
 Xiao Yang et al. “A three-phase search approach with dynamic population size for solving # nolint

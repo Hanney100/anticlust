@@ -10,16 +10,44 @@ distances <- dist(dat)
 distances2 <- anticlust:::convert_to_distances(dat) 
 
 ergebnis <- anticlust:::three_phase_search_anticlustering(dat, K, N)
-#diversity_objective(distances, ergebnis)
+diversity_objective(distances, ergebnis$result)
 
 ergebnis2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
-#diversity_objective(distances, ergebnis3)
+diversity_objective(distances, ergebnis2)
 
 ergebnis3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "lpSolve")
+diversity_objective(distances, ergebnis3)
 
-#diversity_objective(distances, ergebnis3)
 print(ergebnis)
 print(ergebnis2)
 print(ergebnis3)
 
 ergebnis$result
+
+
+N <- 12
+M <- 2
+K <- 3
+dat <- matrix(rnorm(N * M), ncol = M)
+distances <- dist(dat)
+distances2 <- anticlust:::convert_to_distances(dat) 
+
+ergebnis <- anticlust:::three_phase_search_anticlustering(dat, K, N)
+diversity_objective(distances, ergebnis$result)
+
+ergebnis2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
+diversity_objective(distances, ergebnis2)
+
+ergebnis3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "lpSolve")
+diversity_objective(distances, ergebnis3)
+
+print(ergebnis)
+print(ergebnis2)
+print(ergebnis3)
+
+ergebnis$result
+
+plot_clusters(dat, clusters = ergebnis$result,within_connection = TRUE, show_axes = TRUE)
+plot_clusters(dat, clusters = ergebnis2, within_connection = TRUE,show_axes = TRUE)
+plot_clusters(dat, clusters = ergebnis3, within_connection = TRUE, show_axes = TRUE)
+
