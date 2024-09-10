@@ -67,6 +67,8 @@ int eta_max;
 double** AvgCon;
 int* Rd, * UnderLB;
 
+int random_int(int max);
+double uniform_rnd_number(void);
 void ClearDeltaMatrix();
 void BuildDeltaMatrix();
 void OneMoveUpdateDeltaMatrix1(int i, int oldGroup, int newGroup);
@@ -213,7 +215,7 @@ void SearchAlgorithm() {
         // Crossover and Local Search
         if (populationSize > 1) {
             for (i = 0; i < populationSize; i++) {
-                pickedSolution = rand() % populationSize;
+                pickedSolution = random_int(populationSize);
                 do {
                     pickedSolution = (pickedSolution + 1) % populationSize;
                 } while (pickedSolution == i);
@@ -292,7 +294,7 @@ void RandomInitialSol(int p[], int SizeG[]) {
 
     // First phase: Assign elements to satisfy lower bound constraints (LB)
     while (total_assigned < total_LB) {
-        int selected_element = rand() % N;
+        int selected_element = random_int(N);
 
         if (!isAssigned[selected_element]) {  // Only assign unassigned elements
             for (int group = 0; group < K; group++) {
@@ -309,11 +311,11 @@ void RandomInitialSol(int p[], int SizeG[]) {
 	
 	// Second phase: Assign remaining elements, respecting the upper bound (UB)
     while (total_assigned < N) {
-        int selected_element = rand() % N;
+        int selected_element = random_int(N);
         if (!isAssigned[selected_element]) {
             int group;
             do {
-                group = rand() % K;  // Randomly select a group
+                group = random_int(K);  // Randomly select a group
             } while (groupSize[group] >= UB[group]);  // Ensure group doesn't exceed UB
 
             p[selected_element] = group;
@@ -440,7 +442,7 @@ void StrongPerturbation(int L, int partition[], int SizeGroup[]) {
     theta = L;
     // Perturbation loop
     while (count < theta) {
-        cur_index = rand() % NumberNeighbors;
+        cur_index = random_int(NumberNeighbors);
 
         if (Neighbors[cur_index].type == 1) { // Type 1 neighbor: (element, group)
             v = Neighbors[cur_index].v;
@@ -550,7 +552,7 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
         int nn = 0;
         while (nn < number) {
             maxAvgCon = -9999;
-            i = rand() % K;
+            i = random_int(K);
 
             // Find the element with the highest average connection to the group
             do {
@@ -586,7 +588,7 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
         int groupWithMaxAvgCon;
         nn = 0;
         while (nn < K - number) {
-            selectedGroup = rand() % K;
+            selectedGroup = random_int(K);
              // Find the group with the highest average connection for the element
             do {
                 selectedGroup = (selectedGroup + 1) % K;
@@ -680,7 +682,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
 
     // Main crossover process
     for (i = 0; i < K; i++) {
-        if ((rand() / (RAND_MAX + 1.0)) < 0.5) {
+        if (uniform_rnd_number() < 0.5) {
             // Process partition1
             maxGroupDiversity = -9999;
             for (j = 0; j < K; j++) {
@@ -715,7 +717,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
 
                 processedCount = 0;
                 while (processedCount < elementCount - minDiff) {
-                    selectedElement = rand() % elementCount;
+                    selectedElement = random_int(elementCount);
                     do {
                         selectedElement = (selectedElement + 1) % elementCount;
                     } while (SelectEle[selectedElement] == -1);
@@ -727,7 +729,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
                 }
                 elementCount = processedCount;
             } else {
-                targetGroup = SelectGroup[rand() % groupCount];
+                targetGroup = SelectGroup[random_int(groupCount)];
                 for (j = 0; j < elementCount; j++) {
                     score[SelectEle[j]] = targetGroup;
                     vectorElement[SelectEle[j]] = -1;
@@ -769,7 +771,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
 
                 processedCount = 0;
                 while (processedCount < elementCount - minDiff) {
-                    selectedElement = rand() % elementCount;
+                    selectedElement = random_int(elementCount);
                     do {
                         selectedElement = (selectedElement + 1) % elementCount;
                     } while (SelectEle[selectedElement] == -1);
@@ -781,7 +783,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
                 }
                 elementCount = processedCount;
             } else {
-                targetGroup = SelectGroup[rand() % groupCount];
+                targetGroup = SelectGroup[random_int(groupCount)];
                 for (j = 0; j < elementCount; j++) {
                     score[SelectEle[j]] = targetGroup;
                     vectorElement[SelectEle[j]] = -1;
@@ -828,7 +830,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
     }
 
     while (processedCount < totalLowerBound) {
-        targetGroup = rand() % K;
+        targetGroup = random_int(K);
         do {
             targetGroup = (targetGroup + 1) % K;
         } while (BigThanLB[targetGroup] == 0);
@@ -840,7 +842,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
             }
         }
 
-        selectedElement = rand() % elementCount;
+        selectedElement = random_int(elementCount);
         score[SelectEle[selectedElement]] = -1;
         vectorElement[SelectEle[selectedElement]] = SelectEle[selectedElement];
         scSizeGroup[targetGroup]--;
@@ -858,7 +860,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
     }
 
     while (totalBelowLowerBound < sumLB) {
-        targetGroup = rand() % K;
+        targetGroup = random_int(K);
         do {
             targetGroup = (targetGroup + 1) % K;
         } while (LBGroup[targetGroup] == 0);
@@ -870,7 +872,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
             }
         }
 
-        selectedElement = rand() % elementCount;
+        selectedElement = random_int(elementCount);
         score[SelectEle[selectedElement]] = targetGroup;
         vectorElement[SelectEle[selectedElement]] = -1;
         scSizeGroup[targetGroup]++;
@@ -889,7 +891,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
     }
 
     while (totalSize < N) {
-        targetGroup = rand() % K;
+        targetGroup = random_int(K);
         do {
             targetGroup = (targetGroup + 1) % K;
         } while (UBGroup[targetGroup] == 0);
@@ -901,7 +903,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
             }
         }
 
-        selectedElement = rand() % elementCount;
+        selectedElement = random_int(elementCount);
         score[SelectEle[selectedElement]] = targetGroup;
         vectorElement[SelectEle[selectedElement]] = -1;
         scSizeGroup[targetGroup]++;
@@ -1206,3 +1208,10 @@ void ReleaseMemory() {
     free(p2); p2 = NULL;
 }
 
+// Generate a random integer from zero to max-1
+int random_int(int max) {
+GetRNGstate();
+  double my_number = unif_rand();
+  PutRNGstate();
+  return (int) floor(my_number * max);
+}
