@@ -16,30 +16,35 @@ three_phase_search_anticlustering(
   theta_max = NULL,
   theta_min = NULL,
   beta_min = NULL,
-  LMAX = 3
+  eta_max = 3,
+  alpha = 0.05
 )
 }
 \arguments{
 \item{K}{Number of anticlusters to be formed.}
 
-\item{upper_bound}{Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.}
+\item{upper_bound}{Maximum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.}
 
 \item{lower_bound}{Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.}
 
 \item{beta_max}{The algorithm begins with a pool of random initial solutions of size beta_max. 
 Over time, the size of the solution pool decreases linearly until it reaches beta_min.}
 
-\item{time_limit}{Maximum execution time of the algorithm (in seconds)}
+\item{time_limit}{Maximum execution time of the algorithm (in seconds).}
 
-\item{theta_max}{Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..}
+\item{theta_max}{Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min.}
 
-\item{theta_min}{Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..}
+\item{theta_min}{Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min.}
 
 \item{beta_min}{The minimum solution pool size the algorithm should reach before making a determination.}
 
+\item{eta_max}{Parameter for}
+
+\item{alpha}{Parameter for weitghing the discrimitation of a slighlty worse local optiomal child solution.}
+
 \item{matrix}{The data input. Currently just a vector.}
 
-\item{return}{}
+\item{return}{results contains everzthing, including vector result and its cost}
 }
 \description{
 This function implements the three phase search algorithm TPSPD for
@@ -70,9 +75,6 @@ diversity_objective(distances, ergebnis3)
 # Compare both results
 print(ergebnis$result)
 print(ergebnis2)
-
-plot_clusters(dat, clusters = ergebnis$result,within_connection = TRUE, show_axes = TRUE)
-plot_clusters(dat, clusters = ergebnis2, within_connection = TRUE,show_axes = TRUE)
 
 }
 \references{

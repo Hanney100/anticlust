@@ -13,11 +13,13 @@
 #'  Over time, the size of the solution pool decreases linearly until it reaches beta_min.
 #' @param beta_min The minimum solution pool size the algorithm should reach before making a determination.
 #' @param lower_bound Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.
-#' @param upper_bound Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.
-#' @param theta_max Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..
-#' @param theta_min Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..
-#' @param time_limit Maximum execution time of the algorithm (in seconds)
-#' @param return
+#' @param upper_bound Maximum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.
+#' @param theta_max Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min.
+#' @param theta_min Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min.
+#' @param eta_max Parameter for 
+#' @param alpha Parameter for weitghing the discrimitation of a slighlty worse local optiomal child solution.
+#' @param time_limit Maximum execution time of the algorithm (in seconds).
+#' @param return results contains everzthing, including vector result and its cost
 #'     
 #' @details
 #' 
@@ -51,9 +53,6 @@
 #' print(ergebnis$result)
 #' print(ergebnis2)
 #' 
-#' plot_clusters(dat, clusters = ergebnis$result,within_connection = TRUE, show_axes = TRUE)
-#' plot_clusters(dat, clusters = ergebnis2, within_connection = TRUE,show_axes = TRUE)
-#' 
 #' @note
 #' 
 #' @references
@@ -64,7 +63,9 @@
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
 three_phase_search_anticlustering <- function(x, K, N,
-    upper_bound  = NULL, lower_bound  = NULL, beta_max = 15, time_limit  = NULL, theta_max = NULL, theta_min = NULL, beta_min = NULL, LMAX=3) {
+    upper_bound  = NULL, lower_bound  = NULL, beta_max = 15, 
+    time_limit  = NULL, theta_max = NULL, theta_min = NULL, 
+    beta_min = NULL, eta_max=3, alpha=0.05) {
 
     #input_validation_threephase_search(x, K)
     distances <- convert_to_distances(x) 
@@ -110,9 +111,10 @@ three_phase_search_anticlustering <- function(x, K, N,
                   Theta_max = as.double(theta_max),
                   Theta_min = as.double(theta_min),
                   Beta_min = as.integer(beta_min),
-                  Lmax = as.integer(LMAX),
+                  Eta_max = as.integer(eta_max),
+                  Alpha = as.double(alpha),
                   result = as.integer(result_vector),
-                  cost = as.double(0.0),
+                  score = as.double(0.0),
                   mem_error = as.integer(0),
                   PACKAGE = "anticlust"
      )

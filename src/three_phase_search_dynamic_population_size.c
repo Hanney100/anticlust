@@ -9,7 +9,7 @@
 
 
 typedef struct {
-    int *p;        // cluster membership of each element
+    int *s;        // cluster membership of each element
     int *SizeG;    // size of each cluster
     double cost;   // global cost function value of solution
 } Solution;
@@ -22,17 +22,30 @@ typedef struct {
     int y;
 } Neighborhood;
 
-int populationSize;
+int beta_max;
 int N, K;  // node number and group number
-double objective_function, f_best;
-Solution CS, NS, GS, OS;
-Solution *Pop;
-Solution *Offs;
+double** Distances;   // distance matrix between elements
+double** DistancesT;
+int* LB; // Lower bound of the number of elements in the group i 
+int* UB; // Upper bound of the number of elements in the group i
+double theta, theta_max, theta_min; 
+double alpha;
+int beta_min; 
+int eta_max;
+
+// main processure
+double starting_time, Time_limit;
+Solution S_b; //best solution
+Solution CS;
+Solution *S; //S_i
+Solution *O; //O_i in crossover
 Neighborhood *Neighbors;
-double total_time, starting_time, Time_limit;
-int *p; // partition array for each vertex
-int *bestp; // partition array for each vertex
-int *SizeG;
+
+//double neighboorhood local search
+int *s; // partition array for each v
+double f; //objective funtion value
+
+// Matrix M
 double **Delta_Matrix;  // incremental matrix 
 double **Delta_Matrix_p1;
 double **Delta_Matrix_p2;
@@ -56,16 +69,10 @@ int *UBGroup;
 int *BigThanLB;
 int *ub;
 
-double** Distances;   // distance matrix between elements
-double** DistancesT;
-int* LB; // Lower bound of the number of elements in the group i 
-int* UB; // Upper bound of the number of elements in the group i
-double theta, theta_max, theta_min; 
-int beta_min; 
-int eta_max;
-
+//directed pertubation
 double** AvgCon;
-int* Rd, * UnderLB;
+int* Rd, * UnderLB; //Rd=R
+int *SizeG; //c_g
 
 int random_int(int max);
 double uniform_rnd_number(void);
@@ -79,14 +86,42 @@ void ReleaseMemory();
 void BuildNeighbors();
 void SearchAlgorithm();
 void InitialSol(Solution *S);
-void StrongPerturbation(int L, int partition[], int SizeGroup[]);
-void RandLS(int partition[], int SizeGroup[], double* cost);
+void UndirectedPerturbation(int L, int partition[], int SizeGroup[]);
+void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost);
 void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[]);
-double FitRadioAndDis(int partition1[], int partition2[], double cost1, double cost2);
-void RandomInitialSol(int p[], int SizeG[]);
+double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], double cost1, double cost2);
+void RandomInitialSol(int s[], int SizeG[]);
 void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]);
 int Cmpare(const void *a, const void *b);
 
+
+/* Exchange Method for Anticlustering Based on a Distance matrix
+ * 
+ * param *distannces: vector of data points (in R, this is a distance matrix,
+ *         the matrix structure must be restored in C)
+ * param *N_in: The number of elements (i.e., number of "rows" in *data)
+ * param *K_in: The number of clusters
+ * param *C: The number of categories
+ * param *lower_bound: Minimum number of elements in each anticluster.
+ * param *upper_bound: Maximum number of elements in each anticluster.
+ * param *Beta_max: The algorithm begins with a pool of random initial solutions of size beta_max. 
+ *                   Over time, the size of the solution pool decreases linearly until it reaches beta_min.
+ * param *time_limit:  Maximum execution time of the algorithm (in seconds)
+ * param *Theta_max: Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..
+ * param *Theta_min: Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..
+ * param *Beta_min: The minimum solution pool size the algorithm should reach before making a determination.
+ * param *Eta_max: .
+ * param *Alpha: Parameter for weitghing the discrimitation of a slighlty worse local optiomal child solution
+ *               in Yang et al. set to 0.05 (might differ due to different implemetnation of calculation).
+ * param *result: Calculated assignment of elements to clusters. Emptz vector.
+ * param *cost: Value of objective function.
+ * param *mem_error: This is passed with value 0 and only receives the value 1 
+ *       if a memory error occurs when executing this function. The caller needs
+ *       to test if this value is 1 after execution.
+ * 
+ * 
+ * The return value is assigned to the argument `result`, via pointer
+*/
 void three_phase_search_dynamic_population_size(
                       double *distances, 
                       int *N_in,
@@ -98,18 +133,20 @@ void three_phase_search_dynamic_population_size(
 											double *Theta_max,
 											double *Theta_min,
 											int *Beta_min,
-											int *Lmax,
+											int *Eta_max,
+                                            double *Alpha,
 											int *result,
-											double *cost,
+											double *score,
 											int *mem_error) {
   N = *N_in;
   K = *K_in;
-  populationSize = *Beta_max;  //beta_max in algortihm
+  beta_max = *Beta_max;  
   theta = *Theta_max;
   theta_max = *Theta_max;
   beta_min = *Beta_min;
-  eta_max = *Lmax;
+  eta_max = *Eta_max;
   Time_limit =  *time_limit;
+  alpha = *Alpha;
 
   
   // Allocate memory for Distances and DistancesT arrays
@@ -151,11 +188,11 @@ void three_phase_search_dynamic_population_size(
   
   SearchAlgorithm();
   
-  //save GS -> solution with result
+  //save S_b -> solution with result
   for (int i = 0; i < N; i++){
-    result[i] = GS.p[i];
+    result[i] = S_b.s[i];
   }
-  *cost = GS.cost;
+  *score = S_b.cost;
   
   // Remember to free the allocated memory after use
   for (int i = 0; i < N; i++) {
@@ -177,84 +214,84 @@ void SearchAlgorithm() {
     int eta;
     int pickedSolution;
     clock_t starting_time = clock();
-    GS.cost = -INFINITY;
+    S_b.cost = -INFINITY;
     
     // Initial population generation
     int i, j, k;
-    for (i = 0; i < populationSize; i++) {
+    for (i = 0; i < beta_max; i++) {
         InitialSol(&CS);
-        for (j = 0; j < N; j++) Pop[i].p[j] = CS.p[j];
-        for (k = 0; k < K; k++) Pop[i].SizeG[k] = CS.SizeG[k];
-        Pop[i].cost = CS.cost;
-        if (Pop[i].cost > GS.cost) {
-            for (j = 0; j < N; j++) GS.p[j] = Pop[i].p[j];
-            for (k = 0; k < K; k++) GS.SizeG[k] = Pop[i].SizeG[k];
-            GS.cost = Pop[i].cost;
+        for (j = 0; j < N; j++) S[i].s[j] = CS.s[j];
+        for (k = 0; k < K; k++) S[i].SizeG[k] = CS.SizeG[k];
+        S[i].cost = CS.cost;
+        if (S[i].cost > S_b.cost) {
+            for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
+            for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
+            S_b.cost = S[i].cost;
         }
     }
 
     while (1.0 * (clock() - starting_time) / CLOCKS_PER_SEC < Time_limit) {
         
         eta = (int)(theta * N / K);
-        for (i = 0; i < populationSize; i++) {
-            for (j = 0; j < N; j++) Offs[i].p[j] = Pop[i].p[j];
-            for (k = 0; k < K; k++) Offs[i].SizeG[k] = Pop[i].SizeG[k];
-            Offs[i].cost = Pop[i].cost;
+        for (i = 0; i < beta_max; i++) {
+            for (j = 0; j < N; j++) O[i].s[j] = S[i].s[j];
+            for (k = 0; k < K; k++) O[i].SizeG[k] = S[i].SizeG[k];
+            O[i].cost = S[i].cost;
         }
         // Strong Perturbation and Local Search
-        for (i = 0; i < populationSize; i++) {
-            StrongPerturbation(eta, Pop[i].p, Pop[i].SizeG);
-            RandLS(Pop[i].p, Pop[i].SizeG, &Pop[i].cost);
-            if (Pop[i].cost > GS.cost) {
-                for (j = 0; j < N; j++) GS.p[j] = Pop[i].p[j];
-                for (k = 0; k < K; k++) GS.SizeG[k] = Pop[i].SizeG[k];
-                GS.cost = Pop[i].cost;
+        for (i = 0; i < beta_max; i++) {
+            UndirectedPerturbation(eta, S[i].s, S[i].SizeG);
+            DoubleNeighborhoodLocalSearch(S[i].s, S[i].SizeG, &S[i].cost);
+            if (S[i].cost > S_b.cost) {
+                for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
+                for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
+                S_b.cost = S[i].cost;
             }
         }
 
         // Crossover and Local Search
-        if (populationSize > 1) {
-            for (i = 0; i < populationSize; i++) {
-                pickedSolution = random_int(populationSize);
+        if (beta_max > 1) {
+            for (i = 0; i < beta_max; i++) {
+                pickedSolution = random_int(beta_max);
                 do {
-                    pickedSolution = (pickedSolution + 1) % populationSize;
+                    pickedSolution = (pickedSolution + 1) % beta_max;
                 } while (pickedSolution == i);
-                Crossover(Pop[i].p, Pop[pickedSolution].p, Offs[i].p, Offs[i].SizeG);
-                RandLS(Offs[i].p, Offs[i].SizeG, &Offs[i].cost);
+                Crossover(S[i].s, S[pickedSolution].s, O[i].s, O[i].SizeG);
+                DoubleNeighborhoodLocalSearch(O[i].s, O[i].SizeG, &O[i].cost);
             }
-            for (i = 0; i < populationSize; i++) {
-                if (Offs[i].cost >= Pop[i].cost) {
-                    for (j = 0; j < N; j++) Pop[i].p[j] = Offs[i].p[j];
-                    for (k = 0; k < K; k++) Pop[i].SizeG[k] = Offs[i].SizeG[k];
-                    Pop[i].cost = Offs[i].cost;
-                } else if (FitRadioAndDis(Offs[i].p, Pop[i].p, Offs[i].cost, Pop[i].cost) > 1) {
-                    for (j = 0; j < N; j++) Pop[i].p[j] = Offs[i].p[j];
-                    for (k = 0; k < K; k++) Pop[i].SizeG[k] = Offs[i].SizeG[k];
-                    Pop[i].cost = Offs[i].cost;
+            for (i = 0; i < beta_max; i++) {
+                if (O[i].cost >= S[i].cost) {
+                    for (j = 0; j < N; j++) S[i].s[j] = O[i].s[j];
+                    for (k = 0; k < K; k++) S[i].SizeG[k] = O[i].SizeG[k];
+                    S[i].cost = O[i].cost;
+                } else if (LocalSearchCriterionCalcutlation(O[i].s, S[i].s, O[i].cost, S[i].cost) > 1) {
+                    for (j = 0; j < N; j++) S[i].s[j] = O[i].s[j];
+                    for (k = 0; k < K; k++) S[i].SizeG[k] = O[i].SizeG[k];
+                    S[i].cost = O[i].cost;
                 }
-                if (Pop[i].cost > GS.cost) {
-                    for (j = 0; j < N; j++) GS.p[j] = Pop[i].p[j];
-                    for (k = 0; k < K; k++) GS.SizeG[k] = Pop[i].SizeG[k];
-                    GS.cost = Pop[i].cost;
+                if (S[i].cost > S_b.cost) {
+                    for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
+                    for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
+                    S_b.cost = S[i].cost;
                 }
             }
         }
 
         // Direct Perturbation and Local Search
-        for (i = 0; i < populationSize; i++) {
-            DirectPerturbation(eta_max, Pop[i].p, Pop[i].SizeG);
-            RandLS(Pop[i].p, Pop[i].SizeG, &Pop[i].cost);
-            if (Pop[i].cost > GS.cost) {
-                for (j = 0; j < N; j++) GS.p[j] = Pop[i].p[j];
-                for (k = 0; k < K; k++) GS.SizeG[k] = Pop[i].SizeG[k];
-                GS.cost = Pop[i].cost;
+        for (i = 0; i < beta_max; i++) {
+            DirectPerturbation(eta_max, S[i].s, S[i].SizeG);
+            DoubleNeighborhoodLocalSearch(S[i].s, S[i].SizeG, &S[i].cost);
+            if (S[i].cost > S_b.cost) {
+                for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
+                for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
+                S_b.cost = S[i].cost;
             }
         }
 
-        // Linear decrease population size
+        // Linearly decrease population size
         // Note: Implement sort function based on the comparison function `Cmpare`
-        qsort(Pop, populationSize, sizeof(Solution), Cmpare);
-        populationSize = (int)(beta_min - populationSize) / Time_limit * (1.0 * (clock() - starting_time) / CLOCKS_PER_SEC) + populationSize;
+        qsort(S, beta_max, sizeof(Solution), Cmpare);
+        beta_max = (int)(beta_min - beta_max) / Time_limit * (1.0 * (clock() - starting_time) / CLOCKS_PER_SEC) + beta_max;
         theta = theta_max - (theta_max - theta_min) * (1.0 * (clock() - starting_time) / CLOCKS_PER_SEC) / Time_limit;
     }
 }
@@ -262,8 +299,8 @@ void SearchAlgorithm() {
 /* Algorithm 2: initializes a solution S */
 void InitialSol(Solution *S) {
     /* Algorithm 2: initializes a solution S */
-    RandomInitialSol(S->p, S->SizeG);
-    RandLS(S->p, S->SizeG, &(S->cost));
+    RandomInitialSol(S->s, S->SizeG);
+    DoubleNeighborhoodLocalSearch(S->s, S->SizeG, &(S->cost));
 }
 
 int Cmpare(const void *a, const void *b) {
@@ -273,14 +310,14 @@ int Cmpare(const void *a, const void *b) {
     return (solB->cost - solA->cost); // Return positive if b is greater, negative if a is greater
 }
 
-void RandomInitialSol(int p[], int SizeG[]) {
+void RandomInitialSol(int s[], int SizeG[]) {
 	/* Algorithm 2: initializes a random solution that respects the group size constraints */
-	int i, j;
 
     // Allocates memory
 	int* isAssigned = (int *)malloc(N * sizeof(int));  // Tracks if an element is assigned
 	int* groupSize =(int *)malloc(K * sizeof(int)); // Stores the size of each group
 	
+    int i;
 	for (i = 0; i < K; i++) groupSize[i] = 0;
 	for (i = 0; i < N; i++) isAssigned[i] = 0;
 
@@ -299,7 +336,7 @@ void RandomInitialSol(int p[], int SizeG[]) {
         if (!isAssigned[selected_element]) {  // Only assign unassigned elements
             for (int group = 0; group < K; group++) {
                 if (groupSize[group] < LB[group]) {
-                    p[selected_element] = group;
+                    s[selected_element] = group;
                     isAssigned[selected_element] = 1;
                     groupSize[group]++;
                     total_assigned++;
@@ -318,7 +355,7 @@ void RandomInitialSol(int p[], int SizeG[]) {
                 group = random_int(K);  // Randomly select a group
             } while (groupSize[group] >= UB[group]);  // Ensure group doesn't exceed UB
 
-            p[selected_element] = group;
+            s[selected_element] = group;
             isAssigned[selected_element] = 1;
             groupSize[group]++;
             total_assigned++;
@@ -333,148 +370,134 @@ void RandomInitialSol(int p[], int SizeG[]) {
 	free(isAssigned); isAssigned = NULL;
 }
 
-void RandLS(int partition[], int SizeGroup[], double* cost) {
+void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost) {
     const double DELTA_THRESHOLD = 0.0001;  // Define a constant for comparison threshold
-    int i, vertex, group, otherGroup, x, y;
-    int oldGroup, oldGroup1, tempSwap;
-    double delta;
-    int improved;
+    int i, v, g, u;
+    int oldGroup, oldGroup1, t;
+    int imp;
 
     // Initialize the partition array
-    for (i = 0; i < N; i++) p[i] = partition[i];
+    for (i = 0; i < N; i++) s[i] = partition[i];
 
-    // Build the delta matrix for cost changes
+    // Build the delta_f matrix for cost changes
     BuildDeltaMatrix();
 
-    // Initialize the delta value
-    delta = -99999.0;
+    // Initialize the delta_f value
+    double delta_f = -99999.0;
 
     do {
-        improved = 0;  // Reset improvement flag
+        imp = 0;  // Reset improvement flag
 
         // First loop: Move individual elements to improve partition
-        for (vertex = 0; vertex < N; vertex++) {
-            for (group = 0; group < K; group++) {
-                // Check if moving `vertex` to `group` is valid and beneficial
-                if ((p[vertex] != group) && (SizeGroup[p[vertex]] > LB[p[vertex]]) && (SizeGroup[group] < UB[group])) {
-                    delta = Delta_Matrix[vertex][group] - Delta_Matrix[vertex][p[vertex]];
+        for (v = 0; v < N; v++) {
+            for (g = 0; g < K; g++) {
+                // Check if moving `v` to `group` is valid and beneficial
+                if ((s[v] != g) && (SizeGroup[s[v]] > LB[s[v]]) && (SizeGroup[g] < UB[g])) {
+                    delta_f = Delta_Matrix[v][g] - Delta_Matrix[v][s[v]];
 
-                    if (delta > DELTA_THRESHOLD) {
-                        oldGroup = p[vertex];
+                    if (delta_f > DELTA_THRESHOLD) {
+                        oldGroup = s[v];
 
-                        // Update delta matrix for the move
-                        OneMoveUpdateDeltaMatrix1(vertex, oldGroup, group);
+                        // Update delta_f matrix for the move
+                        OneMoveUpdateDeltaMatrix1(v, oldGroup, g);
 
                         // Update group sizes
                         SizeGroup[oldGroup] -= 1;
-                        SizeGroup[group] += 1;
+                        SizeGroup[g] += 1;
 
-                        // Assign vertex to new group
-                        p[vertex] = group;
+                        // Assign v to new group
+                        s[v] = g;
 
                         // Update total cost
-                        *cost += delta;
+                        *cost += delta_f;
 
                         // Mark as improved
-                        improved = 1;
+                        imp = 1;
                     }
                 }
             }
         }
 
         // Second loop: Swap pairs of elements between groups
-        for (x = 0; x < N; x++) {
-            for (y = x + 1; y < N; y++) {
+        for (v = 0; v < N; v++) {
+            for (u = v + 1; u < N; u++) {
                 // Only swap if nodes are in different groups
-                if (p[x] != p[y]) {
-                    delta = (Delta_Matrix[x][p[y]] - Delta_Matrix[x][p[x]])
-                          + (Delta_Matrix[y][p[x]] - Delta_Matrix[y][p[y]])
-                          - DistancesT[x][y];
+                if (s[v] != s[u]) {
+                    delta_f = (Delta_Matrix[v][s[u]] - Delta_Matrix[v][s[v]])
+                          + (Delta_Matrix[u][s[v]] - Delta_Matrix[u][s[u]])
+                          - DistancesT[v][u];
 
-                    if (delta > DELTA_THRESHOLD) {
-                        oldGroup = p[x];
-                        oldGroup1 = p[y];
+                    if (delta_f > DELTA_THRESHOLD) {
+                        oldGroup = s[v];
+                        oldGroup1 = s[u];
 
-                        // Update delta matrix for the swap
-                        OneMoveUpdateDeltaMatrix1(x, oldGroup, oldGroup1);
-                        OneMoveUpdateDeltaMatrix1(y, oldGroup1, oldGroup);
+                        // Update delta_f matrix M for the swap
+                        OneMoveUpdateDeltaMatrix1(v, oldGroup, oldGroup1);
+                        OneMoveUpdateDeltaMatrix1(u, oldGroup1, oldGroup);
 
                         // Swap the two nodes between groups
-                        tempSwap = p[x];
-                        p[x] = p[y];
-                        p[y] = tempSwap;
+                        t = s[v];
+                        s[v] = s[u];
+                        s[u] = t;
 
                         // Update total cost
-                        *cost += delta;
+                        *cost += delta_f;
 
                         // Mark as improved
-                        improved = 1;
+                        imp = 1;
                     }
                 }
             }
         }
-    } while (improved == 1);  // Continue until no improvement is made
+    } while (imp == 1);  // Continue until no improvement is made
 
     // Update the partition array with the final assignments
-    for (i = 0; i < N; i++) partition[i] = p[i];
+    for (i = 0; i < N; i++) partition[i] = s[i];
 }
 
-void StrongPerturbation(int L, int partition[], int SizeGroup[]) {
+void UndirectedPerturbation(int L, int partition[], int SizeGroup[]) {
     /* Algorithm 4: Undirected Perturbation. Applies a strong perturbation to the partition */
 
-    int NumberNeighbors = N * (N - 1) / 2 + N * K;
-    int count = 0;
-    int cur_index;
+    int current_index;
     int v, g, x, y;
-    int old_g, old_g1, swap;
-    double delt;
+    int oldGroup, oldGroup1, swap;
 
-    // Copy the current partition
-    int* temp_partition = (int*)malloc(N * sizeof(int));
-    if (temp_partition == NULL) {
-        fprintf(stderr, "Memory allocation failed for temp_partition.\n");
-        return;
-    }
+
     for (int i = 0; i < N; i++) {
-        temp_partition[i] = partition[i];
+        s[i] = partition[i];
     }
 
-    theta = L;
+    theta = L; 
+    int count = 0;
+    int NumberNeighbors = N * (N - 1) / 2 + N * K;
+
     // Perturbation loop
     while (count < theta) {
-        cur_index = random_int(NumberNeighbors);
+        current_index = random_int(NumberNeighbors);
 
-        if (Neighbors[cur_index].type == 1) { // Type 1 neighbor: (element, group)
-            v = Neighbors[cur_index].v;
-            g = Neighbors[cur_index].g;
+        if (Neighbors[current_index].type == 1) { // Type 1 neighbor: (element, group)
+            v = Neighbors[current_index].v;
+            g = Neighbors[current_index].g;
 
             // Apply perturbation if constraints are met
-            if (temp_partition[v] != g &&
-                SizeGroup[temp_partition[v]] > LB[temp_partition[v]] &&
-                SizeGroup[g] < UB[g]) {
-
-                delt = Delta_Matrix[v][g] - Delta_Matrix[v][temp_partition[v]];
-                old_g = temp_partition[v];
-                SizeGroup[old_g]--;
+            if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
+                oldGroup = s[v];
+                SizeGroup[oldGroup]--;
                 SizeGroup[g]++;
-                temp_partition[v] = g;
+                s[v] = g;
                 count++;
             }
-        } else if (Neighbors[cur_index].type == 2) { // Type 2 neighbor: (element x, element y)
-            x = Neighbors[cur_index].x;
-            y = Neighbors[cur_index].y;
+        } else if (Neighbors[current_index].type == 2) { // Type 2 neighbor: (element x, element y)
+            x = Neighbors[current_index].x;
+            y = Neighbors[current_index].y;
 
             // Apply perturbation if elements are in different groups
-            if (temp_partition[x] != temp_partition[y]) {
-                delt = (Delta_Matrix[x][temp_partition[y]] - Delta_Matrix[x][temp_partition[x]]) +
-                       (Delta_Matrix[y][temp_partition[x]] - Delta_Matrix[y][temp_partition[y]]) -
-                       2 * Distances[x][y];
-
-                old_g = temp_partition[x];
-                old_g1 = temp_partition[y];
-                swap = temp_partition[x];
-                temp_partition[x] = temp_partition[y];
-                temp_partition[y] = swap;
+            if (s[x] != s[y]) {
+                oldGroup = s[x];
+                oldGroup1 = s[y];
+                swap = s[x];
+                s[x] = s[y];
+                s[y] = swap;
                 count++;
             }
         }
@@ -482,27 +505,23 @@ void StrongPerturbation(int L, int partition[], int SizeGroup[]) {
 
     // Copy the perturbed partition back to the original partition
     for (int i = 0; i < N; i++) {
-        partition[i] = temp_partition[i];
+        partition[i] = s[i];
     }
-
-    free(temp_partition); // Free the allocated memory
 }
 
 void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
 	Iteratively refines partitions to balance group sizes and minimize costs */
 
-    int i, j, k, eta, number, minDeltaValue, minElement;
-    double delt, delt1, delt_max;
-    int NumberNeighbors, old_g, old_g1, swap;
+    int i, j, k, L, number, minDeltaValue, minElement;
 
     // Initialize the partition and size groups
-    for (i = 0; i < N; i++) p[i] = partition[i];
+    for (i = 0; i < N; i++) s[i] = partition[i];
     for (j = 0; j < K; j++) SizeG[j] = SizeGroup[j];
     BuildDeltaMatrix();
 
     // Main loop for perturbation iterations
-    for (eta = 0; eta < eta_max; eta++) {
+    for (L = 0; L < eta_max; L++) {
 
         // Reset tracking variables
         number = 0;
@@ -519,7 +538,7 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
             minDeltaValue = 99999999;
             minElement = 0;
             for (i = 0; i < N; i++) {
-                if (p[i] == k) {
+                if (s[i] == k) {
                     if (Delta_Matrix[i][k] < minDeltaValue) {
                         minDeltaValue = Delta_Matrix[i][k];
                         minElement = i;
@@ -541,8 +560,8 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
         // Rebuild the Delta matrix and average connections after removal
         for (i = 0; i < K; i++) {
             for (j = 0; j < K; j++) {
-                Delta_Matrix[Rd[i]][p[Rd[j]]] = Delta_Matrix[Rd[i]][p[Rd[j]]] - Distances[Rd[i]][Rd[j]];
-                AvgCon[p[Rd[i]]][p[Rd[j]]] = Delta_Matrix[Rd[i]][p[Rd[j]]] / SizeG[p[Rd[j]]];
+                Delta_Matrix[Rd[i]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] - Distances[Rd[i]][Rd[j]];
+                AvgCon[s[Rd[i]]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] / SizeG[s[Rd[j]]];
             }
         }
 
@@ -570,15 +589,15 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
             for (k = 0; k < K; k++) {
                 if (Rd[k] != -1) {
                     Delta_Matrix[Rd[k]][i] += Distances[Rd[k]][Rd[selectedGroup]];
-                    AvgCon[p[Rd[k]]][i] = Delta_Matrix[Rd[k]][i] / SizeG[i];
+                    AvgCon[s[Rd[k]]][i] = Delta_Matrix[Rd[k]][i] / SizeG[i];
                 }
             }
 
             // Clear old connections for the moved element and finalize the move
             for (k = 0; k < K; k++) {
-                AvgCon[p[Rd[selectedGroup]]][k] = 0.0;
+                AvgCon[s[Rd[selectedGroup]]][k] = 0.0;
             }
-            p[Rd[selectedGroup]] = i;
+            s[Rd[selectedGroup]] = i;
             UnderLB[i] = 0;
             Rd[selectedGroup] = -1;
             nn++;
@@ -605,38 +624,36 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
             for (k = 0; k < K; k++) {
                 if (Rd[k] != -1) {
                     Delta_Matrix[Rd[k]][selectedGroup] += Distances[Rd[k]][Rd[groupWithMaxAvgCon]];
-                    AvgCon[p[Rd[k]]][selectedGroup] = Delta_Matrix[Rd[k]][selectedGroup] / SizeG[selectedGroup];
+                    AvgCon[s[Rd[k]]][selectedGroup] = Delta_Matrix[Rd[k]][selectedGroup] / SizeG[selectedGroup];
                 }
             }
 
             // Clear old connections for the moved element and finalize the move
             for (k = 0; k < K; k++) {
-                AvgCon[p[Rd[groupWithMaxAvgCon]]][k] = 0.0;
+                AvgCon[s[Rd[groupWithMaxAvgCon]]][k] = 0.0;
             }
-            p[Rd[groupWithMaxAvgCon]] = selectedGroup;
+            s[Rd[groupWithMaxAvgCon]] = selectedGroup;
             Rd[groupWithMaxAvgCon] = -1;
             nn++;
         }
     }
 
-    for (i = 0; i < N; i++) partition[i] = p[i];
+    for (i = 0; i < N; i++) partition[i] = s[i];
 }
 
 void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[]) {
     /* Algorithm 5: combines partitions in a way that maintains group constraints */
 
-    int i, j, k, maxGroupDiversity, selectedGroup;
+    int i, j, maxGroupDiversity, selectedGroup;
     int elementCount, groupCount;
-    int unassignedFlag;
-    int surplus;
     int targetGroup = -1;
     int processedCount;
     int selectedElement;
-    int totalAssigned, totalLowerBound, totalBelowLowerBound;
+    int totalLowerBound, totalBelowLowerBound;
 
-    // Initialize p and p1 with partition1
+    // Initialize s and p1 with partition1
     for (i = 0; i < N; i++) {
-        p[i] = partition1[i];
+        s[i] = partition1[i];
         p1[i] = partition1[i];
     }
     BuildDeltaMatrix();
@@ -650,9 +667,9 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
         groupDiversity_p1[i] = groupDiversity[i];
     }
 
-    // Initialize p and p2 with partition2
+    // Initialize s and p2 with partition2
     for (i = 0; i < N; i++) {
-        p[i] = partition2[i];
+        s[i] = partition2[i];
         p2[i] = partition2[i];
     }
     BuildDeltaMatrix();
@@ -914,10 +931,10 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
     }
 }
 
-double FitRadioAndDis(int partition1[], int partition2[], double cost1, double cost2) {
+double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], double cost1, double cost2) {
     /* 
      * Evaluates the quality and dissimilarity of partitions.
-     * It calculates a 'radio' value that combines the ratio of costs and a
+     * It calculates the value that combines the ratio of costs and a
      * dissimilarity factor between partition1 and partition2.
      */
     
@@ -934,21 +951,17 @@ double FitRadioAndDis(int partition1[], int partition2[], double cost1, double c
     // Loop over all pairs of elements to count dissimilar pairs
     for (i = 0; i < N - 1; i++) {
         for (j = i + 1; j < N; j++) {
-            int sameInPartition1 = (partition1[i] == partition1[j]);
-            int sameInPartition2 = (partition2[i] == partition2[j]);
-
             // Count cases where elements are grouped differently in the two partitions
-            if (sameInPartition1 != sameInPartition2) {
+            if ((partition1[i] == partition1[j]) !=  (partition2[i] == partition2[j])) {
                 count++;
             }
         }
     }
 
-    // Calculate the radio value: ratio of costs + dissimilarity factor
-    double dissimilarityFactor = 0.05 * ((double)count / totalPairs) * K;
-    double radio = cost1 / cost2 + dissimilarityFactor;
-
-    return radio;
+    // Calculate ratio of costs + dissimilarity factor
+    // should alpha not be alpha/2 ?
+    double dissimilarityFactor = ((double)count / totalPairs) * K;
+    return  cost1 / cost2 +  alpha *  dissimilarityFactor;
 }
 
 void BuildNeighbors() {
@@ -979,8 +992,8 @@ void BuildNeighbors() {
 }
 
 void ClearDeltaMatrix() {
-	/* Resets the delta matrix and objective function value */
-    objective_function = 0.0;
+	/* Resets the delta_f matrix and objective function value */
+    f = 0.0;
     for (int x = 0; x < N; ++x) {
         for (int g = 0; g < K; ++g) {
             Delta_Matrix[x][g] = 0.0;
@@ -989,30 +1002,31 @@ void ClearDeltaMatrix() {
 }
 
 void BuildDeltaMatrix() {
-	/*  Builds the delta matrix and calculates the objective function value */
-	int i, j;
+	/*  Builds the delta_f matrix and calculates the objective function value */
+
 	ClearDeltaMatrix();
 
+    int i, j;
 	// Update Delta_Matrix based on distances
     for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            Delta_Matrix[i][p[j]] += Distances[i][j];
+        for (j = 0; j < N; ++j) {
+            Delta_Matrix[i][s[j]] += Distances[i][j];
         }
     }
 
     // Compute Delta values based on Delta_Matrix
     for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < K; ++j) {
-            Delta[i][j] = Delta_Matrix[i][j] - Delta_Matrix[i][p[i]];
+        for (j = 0; j < K; ++j) {
+            Delta[i][j] = Delta_Matrix[i][j] - Delta_Matrix[i][s[i]];
         }
     }
 
     // Calculate the objective function value
-    objective_function = 0.0;
-    for (int i = 0; i < N; ++i) {
-        objective_function += Delta_Matrix[i][p[i]];
+    f = 0.0;
+    for (i = 0; i < N; ++i) {
+        f += Delta_Matrix[i][s[i]];
     }
-    objective_function /= 2.0;
+    f /= 2.0;
 }
 
 void BuildGroupDiversityForCrossover() {
@@ -1023,9 +1037,9 @@ void BuildGroupDiversityForCrossover() {
 	
 	// Compute group diversity based on distances
     for (int i = 0; i < N; ++i) {
-        int group_i = p[i];
+        int group_i = s[i];
         for (int j = 0; j < N; ++j) {
-            if (group_i == p[j]) {
+            if (group_i == s[j]) {
                 groupDiversity[group_i] += Distances[i][j];
             }
         }
@@ -1033,7 +1047,7 @@ void BuildGroupDiversityForCrossover() {
 }
 
 void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup) {
-	/* udates the delta matrix for single-element moves */
+	/* udates the delta_f matrix for single-element moves */
 	int x, j, k;
 
     // Update Delta_Matrix for all elements affected by the move
@@ -1047,16 +1061,16 @@ void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup) {
     // Recompute Delta values for all elements except the moved element
 	for (x = 0; x < N; x++) {
 		if (x != i) {
-			Delta[x][oldGroup] = Delta_Matrix[x][oldGroup] - Delta_Matrix[x][p[x]];
-			Delta[x][newGroup] = Delta_Matrix[x][newGroup] - Delta_Matrix[x][p[x]];
+			Delta[x][oldGroup] = Delta_Matrix[x][oldGroup] - Delta_Matrix[x][s[x]];
+			Delta[x][newGroup] = Delta_Matrix[x][newGroup] - Delta_Matrix[x][s[x]];
 
-			if (p[x] == oldGroup) {
+			if (s[x] == oldGroup) {
 				for (k = 0; k < K; k++) {
 					Delta[x][k] = Delta_Matrix[x][k] - Delta_Matrix[x][oldGroup];
 				}
 			}
 
-			if (p[x] == newGroup) {
+			if (s[x] == newGroup) {
 				for (k = 0; k < K; k++) {
 					Delta[x][k] = Delta_Matrix[x][k] - Delta_Matrix[x][newGroup];
 				}
@@ -1084,16 +1098,14 @@ void AssignMemory() {
 	for the algorithm's execution. This includes structures for population management, 
 	distance matrices, diversity measures, and neighborhood exploration.
 	*/
-
-    int i, j;
     
-    p = (int*)malloc(N * sizeof(int));
-    bestp = (int*)malloc(N * sizeof(int));
+    s = (int*)malloc(N * sizeof(int));
     SizeG = (int*)malloc(K * sizeof(int));
     
-    Pop = (Solution*)malloc(populationSize * sizeof(Solution));
-    Offs = (Solution*)malloc(populationSize * sizeof(Solution));
+    S = (Solution*)malloc(beta_max * sizeof(Solution));
+    O = (Solution*)malloc(beta_max * sizeof(Solution));
     
+    int i;
     Delta_Matrix = (double**)malloc(N * sizeof(double*));
     for (i = 0; i < N; i++) Delta_Matrix[i] = (double*)malloc(K * sizeof(double));
     Delta_Matrix_p1 = (double**)malloc(N * sizeof(double*));
@@ -1112,25 +1124,21 @@ void AssignMemory() {
     Delta1 = (double**)malloc(N * sizeof(double*));
     for (i = 0; i < N; i++) Delta1[i] = (double*)malloc(K * sizeof(double));
     
-    for (i = 0; i < populationSize; i++) {
-        Pop[i].p = (int*)malloc(N * sizeof(int));
-        Offs[i].p = (int*)malloc(N * sizeof(int));
+    for (i = 0; i < beta_max; i++) {
+        S[i].s = (int*)malloc(N * sizeof(int));
+        O[i].s = (int*)malloc(N * sizeof(int));
     }
     
-    for (i = 0; i < populationSize; i++) {
-        Pop[i].SizeG = (int*)malloc(K * sizeof(int));
-        Offs[i].SizeG = (int*)malloc(K * sizeof(int));
+    for (i = 0; i < beta_max; i++) {
+        S[i].SizeG = (int*)malloc(K * sizeof(int));
+        O[i].SizeG = (int*)malloc(K * sizeof(int));
     }
     
-    CS.p = (int*)malloc(N * sizeof(int));
-    NS.p = (int*)malloc(N * sizeof(int));
-    GS.p = (int*)malloc(N * sizeof(int));
-    OS.p = (int*)malloc(N * sizeof(int));
+    CS.s = (int*)malloc(N * sizeof(int));
+    S_b.s = (int*)malloc(N * sizeof(int));
     
     CS.SizeG = (int*)malloc(K * sizeof(int));
-    NS.SizeG = (int*)malloc(K * sizeof(int));
-    GS.SizeG = (int*)malloc(K * sizeof(int));
-    OS.SizeG = (int*)malloc(K * sizeof(int));
+    S_b.SizeG = (int*)malloc(K * sizeof(int));
     
     Neighbors = (Neighborhood*)malloc((N * (N - 1) / 2 + N * K) * sizeof(Neighborhood));
     
@@ -1156,25 +1164,20 @@ void AssignMemory() {
 void ReleaseMemory() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
-    int i;
     
-    free(p); p = NULL;
-    free(bestp); bestp = NULL;
+    free(s); s = NULL;
     free(SizeG); SizeG = NULL;
     
-    free(CS.p); CS.p = NULL;
+    free(CS.s); CS.s = NULL;
     free(CS.SizeG); CS.SizeG = NULL;
-    free(GS.p); GS.p = NULL;
-    free(GS.SizeG); GS.SizeG = NULL;
-    free(NS.p); NS.p = NULL;
-    free(NS.SizeG); NS.SizeG = NULL;
-    free(OS.p); OS.p = NULL;
-    free(OS.SizeG); OS.SizeG = NULL;
+    free(S_b.s); S_b.s = NULL;
+    free(S_b.SizeG); S_b.SizeG = NULL;
     
     free(LB); LB = NULL;
     free(UB); UB = NULL;
     free(Neighbors); Neighbors = NULL;
     
+    int i;
     for (i = 0; i < N; i++) {
         free(Delta_Matrix[i]); Delta_Matrix[i] = NULL;
         free(Delta_Matrix1[i]); Delta_Matrix1[i] = NULL;
