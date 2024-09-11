@@ -409,7 +409,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                         s[v] = g;
 
                         // Update total cost
-                        *cost += delta_f;
+                        f += delta_f;
 
                         // Mark as improved
                         imp = 1;
@@ -441,7 +441,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                         s[u] = t;
 
                         // Update total cost
-                        *cost += delta_f;
+                        f += delta_f;
 
                         // Mark as improved
                         imp = 1;
@@ -453,6 +453,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
 
     // Update the partition array with the final assignments
     for (i = 0; i < N; i++) partition[i] = s[i];
+    *cost = f;
 }
 
 void UndirectedPerturbation(int L, int partition[], int SizeGroup[]) {
@@ -992,11 +993,11 @@ void BuildNeighbors() {
 }
 
 void ClearDeltaMatrix() {
-	/* Resets the delta_f matrix and objective function value */
-    f = 0.0;
-    for (int x = 0; x < N; ++x) {
-        for (int g = 0; g < K; ++g) {
-            Delta_Matrix[x][g] = 0.0;
+	/* Resets the delta_f matrix */
+    for (int i = 0; i < N; ++i) {
+        // should this not be over N ?!
+        for (int j = 0; j < K; j++) {
+            Delta_Matrix[i][j] = 0.0;
         }
     }
 }
@@ -1015,7 +1016,7 @@ void BuildDeltaMatrix() {
     }
 
     // Compute Delta values based on Delta_Matrix
-    for (int i = 0; i < N; ++i) {
+    for (i = 0; i < N; ++i) {
         for (j = 0; j < K; ++j) {
             Delta[i][j] = Delta_Matrix[i][j] - Delta_Matrix[i][s[i]];
         }
