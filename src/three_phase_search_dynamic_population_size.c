@@ -70,7 +70,7 @@ int *BigThanLB;
 int *ub;
 
 //directed pertubation
-double** AvgCon;
+double** Avg;
 int* Rd, * UnderLB; //Rd=R
 int *SizeG; //c_g
 
@@ -530,7 +530,7 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
             UnderLB[i] = 0;
             Rd[i] = -1;
             for (j = 0; j < K; j++) {
-                AvgCon[i][j] = 0.0;
+                Avg[i][j] = 0.0;
             }
         }
 
@@ -562,14 +562,15 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
         for (i = 0; i < K; i++) {
             for (j = 0; j < K; j++) {
                 Delta_Matrix[Rd[i]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] - Distances[Rd[i]][Rd[j]];
-                AvgCon[s[Rd[i]]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] / SizeG[s[Rd[j]]];
+                Avg[s[Rd[i]]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] / SizeG[s[Rd[j]]];
             }
-        }
-
+        }        
+		
         // Handle groups that are under the lower bound (LB)
         int selectedGroup;
         int maxAvgCon;
         int nn = 0;
+        int i;
         while (nn < number) {
             maxAvgCon = -9999;
             i = random_int(K);
@@ -579,8 +580,8 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
                 i = (i + 1) % K;
             } while (UnderLB[i] == 0);
             for (j = 0; j < K; j++) {
-                if (AvgCon[j][i] > maxAvgCon) {
-                    maxAvgCon = AvgCon[j][i];
+                if (Avg[j][i] > maxAvgCon) {
+                    maxAvgCon = Avg[j][i];
                     selectedGroup = j;
                 }
             }
@@ -590,13 +591,13 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
             for (k = 0; k < K; k++) {
                 if (Rd[k] != -1) {
                     Delta_Matrix[Rd[k]][i] += Distances[Rd[k]][Rd[selectedGroup]];
-                    AvgCon[s[Rd[k]]][i] = Delta_Matrix[Rd[k]][i] / SizeG[i];
+                    Avg[s[Rd[k]]][i] = Delta_Matrix[Rd[k]][i] / SizeG[i];
                 }
             }
 
             // Clear old connections for the moved element and finalize the move
             for (k = 0; k < K; k++) {
-                AvgCon[s[Rd[selectedGroup]]][k] = 0.0;
+                Avg[s[Rd[selectedGroup]]][k] = 0.0;
             }
             s[Rd[selectedGroup]] = i;
             UnderLB[i] = 0;
@@ -608,38 +609,44 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
         int groupWithMaxAvgCon;
         nn = 0;
         while (nn < K - number) {
-            selectedGroup = random_int(K);
-             // Find the group with the highest average connection for the element
+            selectedGroup = rand() % K;
             do {
                 selectedGroup = (selectedGroup + 1) % K;
             } while (Rd[selectedGroup] == -1);
             maxAvgCon = -9999;
             for (j = 0; j < K; j++) {
-                if (AvgCon[j][selectedGroup] > maxAvgCon) {
-                    maxAvgCon = AvgCon[j][selectedGroup];
+                if (Avg[selectedGroup][j] > maxAvgCon) {
+                    maxAvgCon = Avg[selectedGroup][j];
                     groupWithMaxAvgCon = j;
                 }
             }
             // Move the selected element to the group
-            SizeG[selectedGroup] += 1;
-            for (k = 0; k < K; k++) {
-                if (Rd[k] != -1) {
-                    Delta_Matrix[Rd[k]][selectedGroup] += Distances[Rd[k]][Rd[groupWithMaxAvgCon]];
-                    AvgCon[s[Rd[k]]][selectedGroup] = Delta_Matrix[Rd[k]][selectedGroup] / SizeG[selectedGroup];
+            if (SizeG[groupWithMaxAvgCon] < UB[groupWithMaxAvgCon]) {
+                SizeG[groupWithMaxAvgCon] += 1;
+                for (k = 0; k < K; k++) {
+                    if (Rd[k] != -1) {
+                        Delta_Matrix[Rd[k]][groupWithMaxAvgCon] += Distances[Rd[k]][Rd[selectedGroup]];
+                        Avg[s[Rd[k]]][groupWithMaxAvgCon] = Delta_Matrix[Rd[k]][groupWithMaxAvgCon] / SizeG[groupWithMaxAvgCon];
+                    }
                 }
+                for (k = 0; k < K; k++) {
+                	Avg[s[Rd[selectedGroup]]][k] = 0.0;
+                }
+                s[Rd[selectedGroup]] = groupWithMaxAvgCon;
+				Rd[selectedGroup] = -1;
+				nn += 1;
+			}
+			else {
+				for (k = 0; k < K; k++) {
+					Avg[k][groupWithMaxAvgCon] = 0.0;
+				}
             }
-
-            // Clear old connections for the moved element and finalize the move
-            for (k = 0; k < K; k++) {
-                AvgCon[s[Rd[groupWithMaxAvgCon]]][k] = 0.0;
-            }
-            s[Rd[groupWithMaxAvgCon]] = selectedGroup;
-            Rd[groupWithMaxAvgCon] = -1;
-            nn++;
         }
+        BuildDeltaMatrix();
     }
 
     for (i = 0; i < N; i++) partition[i] = s[i];
+    for (j = 0; j < K; j++) SizeGroup[j] = SizeG[j];
 }
 
 void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[]) {
@@ -1143,8 +1150,8 @@ void AssignMemory() {
     
     Neighbors = (Neighborhood*)malloc((N * (N - 1) / 2 + N * K) * sizeof(Neighborhood));
     
-    AvgCon = (double**)malloc(K * sizeof(double*));
-    for (i = 0; i < K; i++) AvgCon[i] = (double*)malloc(K * sizeof(double));
+    Avg = (double**)malloc(K * sizeof(double*));
+    for (i = 0; i < K; i++) Avg[i] = (double*)malloc(K * sizeof(double));
     Rd = (int*)malloc(K * sizeof(int));
     for (i = 0; i < K; i++) Rd[i] = 0;
     UnderLB = (int*)malloc(K * sizeof(int));
@@ -1196,7 +1203,7 @@ void ReleaseMemory() {
     free(groupDiversity); groupDiversity = NULL;
     free(groupDiversity_p1); groupDiversity_p1 = NULL;
     free(groupDiversity_p2); groupDiversity_p2 = NULL;
-    free(AvgCon); AvgCon = NULL;
+    free(Avg); Avg = NULL;
     free(Rd); Rd = NULL;
     free(UnderLB); UnderLB = NULL;
     free(ub); ub = NULL;
