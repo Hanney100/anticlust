@@ -2,6 +2,8 @@
 #include <stdlib.h> 
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
+#include <R_ext/Print.h>
 #include "declarations.h"
 
 /* Exchange Method for Anticlustering Based on a Distance matrix
@@ -33,6 +35,7 @@
  *       to test if this value is 1 after execution.
  * 
  * The return value is assigned to the argument `clusters`, via pointer
+ * The running time for the algortihm is assigned to elapsed_time, via pointer
 */
 
 void distance_anticlustering(double *data, int *N, int *K, int *frequencies, int *clusters, 
@@ -42,6 +45,10 @@ void distance_anticlustering(double *data, int *N, int *K, int *frequencies, int
         
         const size_t n = (size_t) *N; // number of data points
         const size_t k = (size_t) *K; // number of clusters
+
+        //important! for windows and linux there is a differnt definition of this time
+        //on windows its the wall time, on linux the CPU time
+        clock_t start_time = clock();
         
         // Restore distance matrix
         int offsets[n]; // index variable for indexing correct cols in data matrix
@@ -133,6 +140,11 @@ void distance_anticlustering(double *data, int *N, int *K, int *frequencies, int
         for (size_t i = 0; i < n; i++) {
                 clusters[i] = BEST_PARTITION[i];
         }
+
+       // Stop measuring time and calculate the elapsed time
+        clock_t end_time = clock();
+        double elapsed_time = (double) (end_time - start_time)/CLOCKS_PER_SEC;
+        Rprintf("The run time of the distance_clustering algortihm in seconds is: %f\n", elapsed_time);
         
         free(OBJ_RESULT); OBJ_RESULT= NULL;
         free_points(n, POINTS, n);

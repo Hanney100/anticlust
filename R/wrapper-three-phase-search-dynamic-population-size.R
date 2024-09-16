@@ -54,6 +54,9 @@
 #' print(ergebnis2)
 #' 
 #' @note
+#' Important! for windows and linux there is a differnt definition of thie run time due to clock(),
+#' so the time_limit acts differnetly depending on zour operating system
+#' On windows it is the wall time, on linux the CPU time
 #' 
 #' @references
 #' 

@@ -34,7 +34,7 @@ int beta_min;
 int eta_max;
 
 // main processure
-double starting_time, Time_limit;
+double start_time, Time_limit;
 Solution S_b; //best solution
 Solution CS;
 Solution *S; //S_i
@@ -213,7 +213,10 @@ void SearchAlgorithm() {
 
     int eta;
     int pickedSolution;
-    clock_t starting_time = clock();
+
+    //important! for windows and linux there is a differnt definition of this time
+    //on windows its the wall time, on linux the CPU time
+    clock_t start_time = clock();
     S_b.cost = -INFINITY;
     
     // Initial population generation
@@ -230,7 +233,7 @@ void SearchAlgorithm() {
         }
     }
 
-    while (1.0 * (clock() - starting_time) / CLOCKS_PER_SEC < Time_limit) {
+    while (1.0 * (clock() - start_time) / CLOCKS_PER_SEC < Time_limit) {
         
         eta = (int)(theta * N / K);
         for (i = 0; i < beta_max; i++) {
@@ -291,8 +294,12 @@ void SearchAlgorithm() {
         // Linearly decrease population size
         // Note: Implement sort function based on the comparison function `Cmpare`
         qsort(S, beta_max, sizeof(Solution), Cmpare);
-        beta_max = (int)(beta_min - beta_max) / Time_limit * (1.0 * (clock() - starting_time) / CLOCKS_PER_SEC) + beta_max;
-        theta = theta_max - (theta_max - theta_min) * (1.0 * (clock() - starting_time) / CLOCKS_PER_SEC) / Time_limit;
+        beta_max = (int)(beta_min - beta_max) / Time_limit * (1.0 * (clock() - start_time) / CLOCKS_PER_SEC) + beta_max;
+        theta = theta_max - (theta_max - theta_min) * (1.0 * (clock() - start_time) / CLOCKS_PER_SEC) / Time_limit;
+
+        clock_t end_time = clock();
+        double elapsed_time = (double) (end_time - start_time)/CLOCKS_PER_SEC;
+        Rprintf("The run time of the TDSPD algortihm in seconds is: %f\n", elapsed_time);
     }
 }
 

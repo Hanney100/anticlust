@@ -53,6 +53,11 @@ The description of their algorithm is
 given in Section 2 of their paper (in particular, see the
 Pseudocode in Algorithm 1).
 }
+\note{
+Important! for windows and linux there is a differnt definition of thie run time due to clock(),
+so the time_limit acts differnetly depending on zour operating system
+On windows it is the wall time, on linux the CPU time
+}
 \examples{
 
 # Generate some random data
