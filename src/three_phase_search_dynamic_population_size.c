@@ -296,10 +296,6 @@ void SearchAlgorithm() {
         qsort(S, beta_max, sizeof(Solution), Cmpare);
         beta_max = (int)(beta_min - beta_max) / Time_limit * (1.0 * (clock() - start_time) / CLOCKS_PER_SEC) + beta_max;
         theta = theta_max - (theta_max - theta_min) * (1.0 * (clock() - start_time) / CLOCKS_PER_SEC) / Time_limit;
-
-        clock_t end_time = clock();
-        double elapsed_time = (double) (end_time - start_time)/CLOCKS_PER_SEC;
-        Rprintf("The run time of the TDSPD algortihm in seconds is: %f\n", elapsed_time);
     }
 }
 
