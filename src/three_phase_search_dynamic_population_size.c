@@ -43,15 +43,12 @@ Neighborhood *Neighbors;
 
 //double neighboorhood local search
 int *s; // partition array for each v
-double f; //objective funtion value
+double objective;
 
 // Matrix M
 double **Delta_Matrix;  // incremental matrix 
 double **Delta_Matrix_p1;
 double **Delta_Matrix_p2;
-double **Delta_Matrix1;
-double **Delta;
-double **Delta1;
 double *groupDiversity;
 double *groupDiversity_p1;
 double *groupDiversity_p2;
@@ -78,9 +75,10 @@ int random_int(int max);
 double uniform_rnd_number(void);
 void ClearDeltaMatrix();
 void BuildDeltaMatrix();
-void OneMoveUpdateDeltaMatrix1(int i, int oldGroup, int newGroup);
 void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup);
 void BuildGroupDiversityForCrossover();
+void BuildDeltaMatrixDispersion();
+void BuildDeltaMatrixDiversity();
 void AssignMemory();
 void ReleaseMemory();
 void BuildNeighbors();
@@ -402,7 +400,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                         oldGroup = s[v];
 
                         // Update delta_f matrix for the move
-                        OneMoveUpdateDeltaMatrix1(v, oldGroup, g);
+                        OneMoveUpdateDeltaMatrix(v, oldGroup, g);
 
                         // Update group sizes
                         SizeGroup[oldGroup] -= 1;
@@ -412,7 +410,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                         s[v] = g;
 
                         // Update total cost
-                        f += delta_f;
+                        objective += delta_f;
 
                         // Mark as improved
                         imp = 1;
@@ -435,8 +433,8 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                         oldGroup1 = s[u];
 
                         // Update delta_f matrix M for the swap
-                        OneMoveUpdateDeltaMatrix1(v, oldGroup, oldGroup1);
-                        OneMoveUpdateDeltaMatrix1(u, oldGroup1, oldGroup);
+                        OneMoveUpdateDeltaMatrix(v, oldGroup, oldGroup1);
+                        OneMoveUpdateDeltaMatrix(u, oldGroup1, oldGroup);
 
                         // Swap the two nodes between groups
                         t = s[v];
@@ -444,7 +442,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                         s[u] = t;
 
                         // Update total cost
-                        f += delta_f;
+                        objective += delta_f;
 
                         // Mark as improved
                         imp = 1;
@@ -456,7 +454,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
 
     // Update the partition array with the final assignments
     for (i = 0; i < N; i++) partition[i] = s[i];
-    *cost = f;
+    *cost = objective;
 }
 
 void UndirectedPerturbation(int L, int partition[], int SizeGroup[]) {
@@ -1019,25 +1017,18 @@ void BuildDeltaMatrix() {
 
     int i, j;
 	// Update Delta_Matrix based on distances
-    for (int i = 0; i < N; ++i) {
-        for (j = 0; j < N; ++j) {
+    for (int i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
             Delta_Matrix[i][s[j]] += Distances[i][j];
         }
     }
 
-    // Compute Delta values based on Delta_Matrix
-    for (i = 0; i < N; ++i) {
-        for (j = 0; j < K; ++j) {
-            Delta[i][j] = Delta_Matrix[i][j] - Delta_Matrix[i][s[i]];
-        }
-    }
-
     // Calculate the objective function value
-    f = 0.0;
-    for (i = 0; i < N; ++i) {
-        f += Delta_Matrix[i][s[i]];
+    objective = 0.0;
+    for (i = 0; i < N; i++) {
+        objective += Delta_Matrix[i][s[i]];
     }
-    f /= 2.0;
+    objective /= 2.0;
 }
 
 void BuildGroupDiversityForCrossover() {
@@ -1047,9 +1038,9 @@ void BuildGroupDiversityForCrossover() {
 	for (int i = 0; i < K; i++) groupDiversity[i] = 0.0;
 	
 	// Compute group diversity based on distances
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < N; i++) {
         int group_i = s[i];
-        for (int j = 0; j < N; ++j) {
+        for (int j = 0; j < N; j++) {
             if (group_i == s[j]) {
                 groupDiversity[group_i] += Distances[i][j];
             }
@@ -1058,44 +1049,7 @@ void BuildGroupDiversityForCrossover() {
 }
 
 void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup) {
-	/* udates the delta_f matrix for single-element moves */
-	int x, j, k;
-
     // Update Delta_Matrix for all elements affected by the move
-	for (j = 0; j < N; j++) {
-		if (j != i) {
-			Delta_Matrix[j][oldGroup] -= Distances[i][j];
-			Delta_Matrix[j][newGroup] += Distances[i][j];
-		}
-	}
-
-    // Recompute Delta values for all elements except the moved element
-	for (x = 0; x < N; x++) {
-		if (x != i) {
-			Delta[x][oldGroup] = Delta_Matrix[x][oldGroup] - Delta_Matrix[x][s[x]];
-			Delta[x][newGroup] = Delta_Matrix[x][newGroup] - Delta_Matrix[x][s[x]];
-
-			if (s[x] == oldGroup) {
-				for (k = 0; k < K; k++) {
-					Delta[x][k] = Delta_Matrix[x][k] - Delta_Matrix[x][oldGroup];
-				}
-			}
-
-			if (s[x] == newGroup) {
-				for (k = 0; k < K; k++) {
-					Delta[x][k] = Delta_Matrix[x][k] - Delta_Matrix[x][newGroup];
-				}
-			}
-
-		}
-	}
-
-    // Update Delta values for the moved element
-	x = i; 
-	for (k = 0; k < K; k++) Delta[x][k] = Delta_Matrix[x][k] - Delta_Matrix[x][newGroup];
-}
-
-void OneMoveUpdateDeltaMatrix1(int i, int oldGroup, int newGroup) {
 	for (int j = 0; j < N; j++) {
 		if (j != i) {
 			Delta_Matrix[j][oldGroup] -= Distances[i][j];
@@ -1123,17 +1077,9 @@ void AssignMemory() {
     for (i = 0; i < N; i++) Delta_Matrix_p1[i] = (double*)malloc(K * sizeof(double));
     Delta_Matrix_p2 = (double**)malloc(N * sizeof(double*));
     for (i = 0; i < N; i++) Delta_Matrix_p2[i] = (double*)malloc(K * sizeof(double));
-    Delta_Matrix1 = (double**)malloc(N * sizeof(double*));
-    for (i = 0; i < N; i++) Delta_Matrix1[i] = (double*)malloc(K * sizeof(double));
     groupDiversity = (double*)malloc(K * sizeof(double));
     groupDiversity_p1 = (double*)malloc(K * sizeof(double));
     groupDiversity_p2 = (double*)malloc(K * sizeof(double));
-    
-    Delta = (double**)malloc(N * sizeof(double*));
-    for (i = 0; i < N; i++) Delta[i] = (double*)malloc(K * sizeof(double));
-    
-    Delta1 = (double**)malloc(N * sizeof(double*));
-    for (i = 0; i < N; i++) Delta1[i] = (double*)malloc(K * sizeof(double));
     
     for (i = 0; i < beta_max; i++) {
         S[i].s = (int*)malloc(N * sizeof(int));
@@ -1191,18 +1137,12 @@ void ReleaseMemory() {
     int i;
     for (i = 0; i < N; i++) {
         free(Delta_Matrix[i]); Delta_Matrix[i] = NULL;
-        free(Delta_Matrix1[i]); Delta_Matrix1[i] = NULL;
         free(Delta_Matrix_p1[i]); Delta_Matrix_p1[i] = NULL;
         free(Delta_Matrix_p2[i]); Delta_Matrix_p2[i] = NULL;
-        free(Delta[i]); Delta[i] = NULL;
-        free(Delta1[i]); Delta1[i] = NULL;
     }
     free(Delta_Matrix); Delta_Matrix = NULL;
     free(Delta_Matrix_p1); Delta_Matrix_p1 = NULL;
     free(Delta_Matrix_p2); Delta_Matrix_p2 = NULL;
-    free(Delta_Matrix1); Delta_Matrix1 = NULL;
-    free(Delta); Delta = NULL;
-    free(Delta1); Delta1 = NULL;
     free(groupDiversity); groupDiversity = NULL;
     free(groupDiversity_p1); groupDiversity_p1 = NULL;
     free(groupDiversity_p2); groupDiversity_p2 = NULL;
