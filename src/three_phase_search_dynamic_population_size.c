@@ -20,6 +20,7 @@ int beta_min;
 int eta_max;
 
 // main processure
+int maxNumberIterations;
 double start_time, Time_limit;
 Solution S_b; //best solution
 Solution CS;
@@ -88,6 +89,7 @@ void three_phase_search_dynamic_population_size(
                       double *distances, 
                       int *N_in,
                       int *K_in, 
+                      int *number_of_iterations,
                       int *upper_bound, 
                       int *lower_bound, 
 											int *Beta_max, 
@@ -109,7 +111,7 @@ void three_phase_search_dynamic_population_size(
   eta_max = *Eta_max;
   Time_limit =  *time_limit;
   alpha = *Alpha;
-
+  maxNumberIterations = *number_of_iterations;
   
   // Allocate memory for Distances and DistancesT arrays
   Distances = (double**)malloc(N * sizeof(double*));
@@ -194,8 +196,9 @@ void SearchAlgorithm() {
             S_b.cost = S[i].cost;
         }
     }
-
-    while (1.0 * (clock() - start_time) / CLOCKS_PER_SEC < Time_limit) {
+ 
+    int counter = 1;
+    while (counter <= maxNumberIterations) {
         
         eta = (int)(theta * N / K);
         for (i = 0; i < beta_max; i++) {
@@ -256,9 +259,15 @@ void SearchAlgorithm() {
         // Linearly decrease population size
         // Note: Implement sort function based on the comparison function `Cmpare`
         qsort(S, beta_max, sizeof(Solution), Cmpare);
-        beta_max = (int)(beta_min - beta_max) / Time_limit * (1.0 * (clock() - start_time) / CLOCKS_PER_SEC) + beta_max;
-        theta = theta_max - (theta_max - theta_min) * (1.0 * (clock() - start_time) / CLOCKS_PER_SEC) / Time_limit;
+        beta_max = (int)(beta_min - beta_max) * counter / maxNumberIterations + beta_max;
+        theta = theta_max - (theta_max - theta_min) * counter / maxNumberIterations;
+        counter++;
     }
+
+    // Stop measuring time and calculate the elapsed time
+    clock_t end_time = clock();
+    double elapsed_time = (double) (end_time - start_time)/CLOCKS_PER_SEC;
+    Rprintf("The run time of the distance_clustering algortihm in seconds is: %f\n", elapsed_time);
 }
 
 /* Algorithm 2: initializes a solution S */

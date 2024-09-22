@@ -9,6 +9,7 @@ three_phase_search_anticlustering(
   x,
   K,
   N,
+  max_iterations = 100,
   upper_bound = NULL,
   lower_bound = NULL,
   beta_max = 15,

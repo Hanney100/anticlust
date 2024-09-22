@@ -66,6 +66,7 @@
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
 three_phase_search_anticlustering <- function(x, K, N,
+    max_iterations=100,
     upper_bound  = NULL, lower_bound  = NULL, beta_max = 15, 
     time_limit  = NULL, theta_max = NULL, theta_min = NULL, 
     beta_min = NULL, eta_max=3, alpha=0.05) {
@@ -107,6 +108,7 @@ three_phase_search_anticlustering <- function(x, K, N,
                   distances = as.double(distances),
                   N_in = as.integer(N),
                   K_in = as.integer(K),
+                  number_of_iterations = as.integer(max_iterations),
                   upper_bound = as.integer(upper_bound),
                   lower_bound = as.integer(lower_bound),
                   Beta_max = as.integer(beta_max),
