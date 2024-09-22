@@ -74,6 +74,7 @@ int *SizeG; //c_g
 int random_int(int max);
 double uniform_rnd_number(void);
 void ClearDeltaMatrix();
+void ClearDeltaMatrixDispersion();
 void BuildDeltaMatrix();
 void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup);
 void BuildGroupDiversityForCrossover();
@@ -1010,6 +1011,16 @@ void ClearDeltaMatrix() {
     }
 }
 
+void ClearDeltaMatrixDispersion() {
+	/* Resets the delta_f matrix */
+    for (int i = 0; i < N; ++i) {
+        // should this not be over N ?!
+        for (int j = 0; j < K; j++) {
+            Delta_Matrix[i][j] = INFINITY;
+        }
+    }
+}
+
 void BuildDeltaMatrix() {
 	/*  Builds the delta_f matrix and calculates the objective function value */
 
@@ -1029,6 +1040,26 @@ void BuildDeltaMatrix() {
         objective += Delta_Matrix[i][s[i]];
     }
     objective /= 2.0;
+}
+
+void BuildDeltaMatrixDispersion() {
+	/*  Builds the delta_f matrix and calculates the objective function value */
+
+	ClearDeltaMatrixDispersion();
+
+    int i, j;
+	// Update Delta_Matrix based on distances
+    for (int i = 0; i < N-1; i++) {
+        for (j = i+1; j < N; j++) {
+            Delta_Matrix[i][s[j]] = fmin(Distances[i][j], Delta_Matrix[i][s[j]]);
+        }
+    } 
+
+    // Calculate the objective function value
+    objective = INFINITY;
+    for (i = 0; i < N; i++) {
+        objective = fmin(Delta_Matrix[i][s[i]], objective);
+    }
 }
 
 void BuildGroupDiversityForCrossover() {
