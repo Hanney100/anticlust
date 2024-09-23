@@ -9,6 +9,7 @@
 #' 
 #' @param matrix The data input. Currently just a vector.
 #' @param K Number of anticlusters to be formed.
+#' @param clusters A vector of length K that specifies the number of elements each cluster can contain. If this vector is not NULL, the lower and upper bounds will be disregarded.
 #' @param beta_max The algorithm begins with a pool of random initial solutions of size beta_max. 
 #'  Over time, the size of the solution pool decreases linearly until it reaches beta_min.
 #' @param beta_min The minimum solution pool size the algorithm should reach before making a determination.
@@ -66,7 +67,7 @@
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
 three_phase_search_anticlustering <- function(x, K, N,
-    max_iterations=100,
+    max_iterations=100, clusters = NULL,
     upper_bound  = NULL, lower_bound  = NULL, beta_max = 15, 
     time_limit  = NULL, theta_max = NULL, theta_min = NULL, 
     beta_min = NULL, eta_max=3, alpha=0.05) {
@@ -102,13 +103,21 @@ three_phase_search_anticlustering <- function(x, K, N,
     } 
 
      # create result vector for results to use in C
-     result_vector = numeric(N)
+    result_vector <- numeric(N)
+    
+    # check if K and clusters match 
+    if (is.null(clusters)) {
+      clusters <- rep(-1, K)
+    } else if (length(clusters) != K) {
+       stop("Number of giving clusters is not K.")
+    }
      
      results <- .C("three_phase_search_dynamic_population_size",
                   distances = as.double(distances),
                   N_in = as.integer(N),
                   K_in = as.integer(K),
                   number_of_iterations = as.integer(max_iterations),
+                  clusters = as.integer(clusters),
                   upper_bound = as.integer(upper_bound),
                   lower_bound = as.integer(lower_bound),
                   Beta_max = as.integer(beta_max),

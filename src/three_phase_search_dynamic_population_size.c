@@ -90,6 +90,7 @@ void three_phase_search_dynamic_population_size(
                       int *N_in,
                       int *K_in, 
                       int *number_of_iterations,
+                      int *clusters,
                       int *upper_bound, 
                       int *lower_bound, 
 											int *Beta_max, 
@@ -133,14 +134,25 @@ void three_phase_search_dynamic_population_size(
     }
   }
   
-  // Allocate memory for LB and UB arrays
-  LB = (int*)malloc(K * sizeof(int));
-  if (LB == NULL) { *mem_error = 1; return; }
-  UB = (int*)malloc(K * sizeof(int));
-  if (UB == NULL) { *mem_error = 1; return; }
-  for (int i = 0; i < K; i++) {
-    LB[i] = *lower_bound;  // Assuming lower_bound is a pointer to an int
-    UB[i] = *upper_bound;  // Assuming upper_bound is a pointer to an int
+  if (clusters[0] == -1 ) {
+    // Allocate memory for LB and UB arrays
+    LB = (int*)malloc(K * sizeof(int));
+    if (LB == NULL) { *mem_error = 1; return; }
+    UB = (int*)malloc(K * sizeof(int));
+    if (UB == NULL) { *mem_error = 1; return; }
+    for (int i = 0; i < K; i++) {
+        LB[i] = *lower_bound;  // Assuming lower_bound is a pointer to an int
+        UB[i] = *upper_bound;  // Assuming upper_bound is a pointer to an int
+    }
+  } else {
+    LB = (int*)malloc(K * sizeof(int));
+    if (LB == NULL) { *mem_error = 1; return; }
+    UB = (int*)malloc(K * sizeof(int));
+    if (UB == NULL) { *mem_error = 1; return; }
+    for (int i = 0; i < K; i++) {
+        LB[i] = clusters[i];  // Assuming lower_bound is a pointer to an int
+        UB[i] = clusters[i];  // Assuming upper_bound is a pointer to an int
+    }
   }
   
   AssignMemory();

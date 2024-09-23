@@ -78,6 +78,48 @@ result_cluster2
 result3
 result_cluster3
 
+
+## test cluster vector
+
+N2 <- 11
+M2 <- 2
+K2 <- 3
+clusters <- c(3,3,5)
+dat2 <- matrix(rnorm(N2 * M2), ncol = M2)
+distances2 <- dist(dat2)
+
+result_cluster <- anticlust:::three_phase_search_anticlustering(distances2, K2, N2, clusters=clusters)
+table_cluseters <- table(result_cluster$result)
+table_cluseters
+expect_true(all(table_cluseters == clusters))
+
+## test cluster vector
+
+N2 <- 140
+M2 <- 2
+K2 <- 4
+clusters <- c(20,40,30,50)
+dat2 <- matrix(rnorm(N2 * M2), ncol = M2)
+distances2 <- dist(dat2)
+
+result_cluster <- anticlust:::three_phase_search_anticlustering(distances2, K2, N2, clusters=clusters)
+table_cluseters <- table(result_cluster$result)
+table_cluseters
+expect_true(all(table_cluseters == clusters))
+
+
+## test cluster vector throughs error
+
+N2 <- 11
+M2 <- 2
+K2 <-2
+clusters <- c(3,3,4)
+dat2 <- matrix(rnorm(N2 * M2), ncol = M2)
+distances2 <- dist(dat2)
+
+expect_error(anticlust:::three_phase_search_anticlustering(distances2, K2, N2, clusters=clusters))
+
+
 ## test equales sized distribution
 
 N2 <- 140

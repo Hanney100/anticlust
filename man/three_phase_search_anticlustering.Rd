@@ -10,6 +10,7 @@ three_phase_search_anticlustering(
   K,
   N,
   max_iterations = 100,
+  clusters = NULL,
   upper_bound = NULL,
   lower_bound = NULL,
   beta_max = 15,
@@ -23,6 +24,8 @@ three_phase_search_anticlustering(
 }
 \arguments{
 \item{K}{Number of anticlusters to be formed.}
+
+\item{clusters}{A vector of length K that specifies the number of elements each cluster can contain. If this vector is not NULL, the lower and upper bounds will be disregarded.}
 
 \item{upper_bound}{Maximum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.}
 
