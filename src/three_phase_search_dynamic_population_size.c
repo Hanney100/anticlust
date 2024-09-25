@@ -447,7 +447,7 @@ void UndirectedPerturbation(int L, int partition[], int SizeGroup[]) {
 
     int current_index;
     int v, g, x, y;
-    int oldGroup, oldGroup1, swap;
+    int oldGroup, swap;
 
 
     for (int i = 0; i < N; i++) {
@@ -480,8 +480,6 @@ void UndirectedPerturbation(int L, int partition[], int SizeGroup[]) {
 
             // Apply perturbation if elements are in different groups
             if (s[x] != s[y]) {
-                oldGroup = s[x];
-                oldGroup1 = s[y];
                 swap = s[x];
                 s[x] = s[y];
                 s[y] = swap;
@@ -635,19 +633,91 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
     for (j = 0; j < K; j++) SizeGroup[j] = SizeG[j];
 }
 
-void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[]) {
+// Function to process a partition 
+void process_partition(double* groupDiversity, int* partition,  int* ub, int* childSolution,
+     int* vectorElement, int K, int N, int *element_count, int *target_group) {
+    int i, selectedGroup, processedCount, selectedElement;
+
+    int elementCount = *element_count; 
+    int targetGroup = *target_group;
+    int maxGroupDiversity = -1;
+    for (i = 0; i < K; i++) {
+        if (groupDiversity_p1[i] > maxGroupDiversity) {
+            maxGroupDiversity = groupDiversity_p1[i];
+            selectedGroup = i;
+        }   
+    }
+
+    for (i = 0; i < N; i++) {
+        if (p1[i] == selectedGroup) {
+            SelectEle[elementCount++] = i;
+        }
+    }
+
+    int groupCount = 0;
+    for (i = 0; i < K; i++) {
+        if (ub[i] != -1 && ub[i] >= elementCount) {
+            SelectGroup[groupCount++] = i;
+        }
+    }
+
+    if (groupCount == 0) { // No valid group found
+        int minDiff = 999999;
+        for (i = 0; i < K; i++) {
+            if (ub[i] != -1 && elementCount - ub[i] < minDiff) {
+                minDiff = elementCount - ub[i];
+                targetGroup = i;
+            }
+        }
+
+        processedCount = 0;
+        while (processedCount < elementCount - minDiff) {
+            selectedElement = random_int(elementCount);
+            do {
+                selectedElement = (selectedElement + 1) % elementCount;
+            } while (SelectEle[selectedElement] == -1);
+
+            childSolution[SelectEle[selectedElement]] = targetGroup;
+            SelectEleTemp[processedCount++] = SelectEle[selectedElement];
+            vectorElement[SelectEle[selectedElement]] = -1;
+            SelectEle[selectedElement] = -1;
+        }
+        elementCount = processedCount;
+    } else {
+        targetGroup = SelectGroup[random_int(groupCount)];
+        for (i = 0; i < elementCount; i++) {
+            childSolution[SelectEle[i]] = targetGroup;
+            vectorElement[SelectEle[i]] = -1;
+            SelectEleTemp[i] = SelectEle[i];
+        }
+    }
+    *element_count = elementCount;
+    *target_group = targetGroup;
+}
+
+void Crossover(int partition1[], int partition2[], int childSolution[], int scSizeGroup[]) {
     /* Algorithm 5: combines partitions in a way that maintains group constraints */
 
-    int i, j, maxGroupDiversity, selectedGroup;
-    int elementCount, groupCount;
-    int targetGroup = -1;
-    int processedCount;
-    int selectedElement;
+    int i, j;
+    int elementCount, processedCount, selectedElement;
     int totalLowerBound, totalBelowLowerBound;
 
-    // Initialize s and p1 with partition1
+    // Initialize arrays
     for (i = 0; i < N; i++) {
-        s[i] = partition1[i];
+        vectorElement[i] = i;
+        childSolution[i] = -1;
+    }
+    for (i = 0; i < K; i++) {
+        LBGroup[i] = 0;
+        UBGroup[i] = 0;
+        BigThanLB[i] = 0;
+        groupElement[i] = i;
+        ub[i] = UB[i];
+        scSizeGroup[i] = 0;
+    }
+
+    // Initialize p1 with partition1
+    for (i = 0; i < N; i++) {
         p1[i] = partition1[i];
     }
     BuildDeltaMatrix();
@@ -661,9 +731,8 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
         groupDiversity_p1[i] = groupDiversity[i];
     }
 
-    // Initialize s and p2 with partition2
+    // Initialize p2 with partition2
     for (i = 0; i < N; i++) {
-        s[i] = partition2[i];
         p2[i] = partition2[i];
     }
     BuildDeltaMatrix();
@@ -677,130 +746,16 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
         groupDiversity_p2[i] = groupDiversity[i];
     }
 
-    // Initialize arrays
-    for (i = 0; i < N; i++) {
-        vectorElement[i] = i;
-        score[i] = -1;
-    }
-    for (i = 0; i < K; i++) {
-        LBGroup[i] = 0;
-        UBGroup[i] = 0;
-        BigThanLB[i] = 0;
-        groupElement[i] = i;
-        ub[i] = UB[i];
-        scSizeGroup[i] = 0;
-    }
-
+    int targetGroup = -1;
     // Main crossover process
     for (i = 0; i < K; i++) {
+        elementCount = 0;
         if (uniform_rnd_number() < 0.5) {
-            // Process partition1
-            maxGroupDiversity = -9999;
-            for (j = 0; j < K; j++) {
-                if (groupDiversity_p1[j] > maxGroupDiversity) {
-                    maxGroupDiversity = groupDiversity_p1[j];
-                    selectedGroup = j;
-                }
-            }
-
-            elementCount = 0;
-            for (j = 0; j < N; j++) {
-                if (p1[j] == selectedGroup) {
-                    SelectEle[elementCount++] = j;
-                }
-            }
-
-            groupCount = 0;
-            for (j = 0; j < K; j++) {
-                if (ub[j] != -1 && ub[j] >= elementCount) {
-                    SelectGroup[groupCount++] = j;
-                }
-            }
-
-            if (groupCount == 0) { // No valid group found
-                int minDiff = 999999;
-                for (j = 0; j < K; j++) {
-                    if (ub[j] != -1 && elementCount - ub[j] < minDiff) {
-                        minDiff = elementCount - ub[j];
-                        targetGroup = j;
-                    }
-                }
-
-                processedCount = 0;
-                while (processedCount < elementCount - minDiff) {
-                    selectedElement = random_int(elementCount);
-                    do {
-                        selectedElement = (selectedElement + 1) % elementCount;
-                    } while (SelectEle[selectedElement] == -1);
-
-                    score[SelectEle[selectedElement]] = targetGroup;
-                    SelectEleTemp[processedCount++] = SelectEle[selectedElement];
-                    vectorElement[SelectEle[selectedElement]] = -1;
-                    SelectEle[selectedElement] = -1;
-                }
-                elementCount = processedCount;
-            } else {
-                targetGroup = SelectGroup[random_int(groupCount)];
-                for (j = 0; j < elementCount; j++) {
-                    score[SelectEle[j]] = targetGroup;
-                    vectorElement[SelectEle[j]] = -1;
-                    SelectEleTemp[j] = SelectEle[j];
-                }
-            }
+            // Process partition 1
+            process_partition(groupDiversity_p1, p1, ub, childSolution, vectorElement, K, N, &elementCount, &targetGroup);  
         } else {
             // Process partition2 (similar to partition1 logic)
-            maxGroupDiversity = -9999;
-            for (j = 0; j < K; j++) {
-                if (groupDiversity_p2[j] > maxGroupDiversity) {
-                    maxGroupDiversity = groupDiversity_p2[j];
-                    selectedGroup = j;
-                }
-            }
-
-            elementCount = 0;
-            for (j = 0; j < N; j++) {
-                if (p2[j] == selectedGroup) {
-                    SelectEle[elementCount++] = j;
-                }
-            }
-
-            groupCount = 0;
-            for (j = 0; j < K; j++) {
-                if (ub[j] != -1 && ub[j] >= elementCount) {
-                    SelectGroup[groupCount++] = j;
-                }
-            }
-
-            if (groupCount == 0) { // No valid group found
-                int minDiff = 999999;
-                for (j = 0; j < K; j++) {
-                    if (ub[j] != -1 && elementCount - ub[j] < minDiff) {
-                        minDiff = elementCount - ub[j];
-                        targetGroup = j;
-                    }
-                }
-
-                processedCount = 0;
-                while (processedCount < elementCount - minDiff) {
-                    selectedElement = random_int(elementCount);
-                    do {
-                        selectedElement = (selectedElement + 1) % elementCount;
-                    } while (SelectEle[selectedElement] == -1);
-
-                    score[SelectEle[selectedElement]] = targetGroup;
-                    SelectEleTemp[processedCount++] = SelectEle[selectedElement];
-                    vectorElement[SelectEle[selectedElement]] = -1;
-                    SelectEle[selectedElement] = -1;
-                }
-                elementCount = processedCount;
-            } else {
-                targetGroup = SelectGroup[random_int(groupCount)];
-                for (j = 0; j < elementCount; j++) {
-                    score[SelectEle[j]] = targetGroup;
-                    vectorElement[SelectEle[j]] = -1;
-                    SelectEleTemp[j] = SelectEle[j];
-                }
-            }
+            process_partition(groupDiversity_p2, p2, ub, childSolution, vectorElement, K, N, &elementCount, &targetGroup);  
         }
 
         // Update group diversity
@@ -833,13 +788,12 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
         }
     }
 
-    // Assign unprocessed elements
+    // Assign unprocessed elements to meet lower bounds Pseudo code line 22
     for (i = 0; i < N; i++) {
         if (vectorElement[i] != -1) {
             processedCount++;
         }
     }
-
     while (processedCount < totalLowerBound) {
         targetGroup = random_int(K);
         do {
@@ -848,13 +802,13 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
 
         elementCount = 0;
         for (j = 0; j < N; j++) {
-            if (score[j] == targetGroup) {
+            if (childSolution[j] == targetGroup) {
                 SelectEle[elementCount++] = j;
             }
         }
 
         selectedElement = random_int(elementCount);
-        score[SelectEle[selectedElement]] = -1;
+        childSolution[SelectEle[selectedElement]] = -1;
         vectorElement[SelectEle[selectedElement]] = SelectEle[selectedElement];
         scSizeGroup[targetGroup]--;
         if (scSizeGroup[targetGroup] == LB[targetGroup]) {
@@ -863,13 +817,13 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
         processedCount++;
     }
 
+    // Assign elements to meet lower bounds Pseudo code line 22
     int sumLB = 0;
     for (i = 0; i < K; i++) {
         if (LBGroup[i] == 1) {
             sumLB += LB[i];
         }
     }
-
     while (totalBelowLowerBound < sumLB) {
         targetGroup = random_int(K);
         do {
@@ -884,7 +838,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
         }
 
         selectedElement = random_int(elementCount);
-        score[SelectEle[selectedElement]] = targetGroup;
+        childSolution[SelectEle[selectedElement]] = targetGroup;
         vectorElement[SelectEle[selectedElement]] = -1;
         scSizeGroup[targetGroup]++;
         if (scSizeGroup[targetGroup] == LB[targetGroup]) {
@@ -893,6 +847,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
         totalBelowLowerBound++;
     }
 
+    // Assign elements to meet upper bounds Pseudo code line 23
     int totalSize = 0;
     for (i = 0; i < K; i++) {
         totalSize += scSizeGroup[i];
@@ -900,7 +855,6 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
             UBGroup[i] = 1;
         }
     }
-
     while (totalSize < N) {
         targetGroup = random_int(K);
         do {
@@ -915,7 +869,7 @@ void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[
         }
 
         selectedElement = random_int(elementCount);
-        score[SelectEle[selectedElement]] = targetGroup;
+        childSolution[SelectEle[selectedElement]] = targetGroup;
         vectorElement[SelectEle[selectedElement]] = -1;
         scSizeGroup[targetGroup]++;
         if (scSizeGroup[targetGroup] == UB[targetGroup]) {
@@ -965,8 +919,7 @@ void BuildNeighbors() {
 	
     // Type 1 neighbors: (i, j) where each element i can be in group j
 	for (i = 0; i < N; i++)
-		for (j = 0; j < K; j++)
-		{
+		for (j = 0; j < K; j++) {
 			Neighbors[count].type = 1;
 			Neighbors[count].v = i;
 			Neighbors[count].g = j;
@@ -975,8 +928,7 @@ void BuildNeighbors() {
 
     // Type 2 neighbors: (i, j) where each pair of elements (i, j) are neighbors    
 	for (i = 0; i < N; i++)
-		for (j = i + 1; j < N; j++)
-		{
+		for (j = i + 1; j < N; j++) {
 			Neighbors[count].type = 2;
 			Neighbors[count].x = i;
 			Neighbors[count].y = j;
