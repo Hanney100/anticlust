@@ -9,22 +9,32 @@
 #' 
 #' @param matrix The data input. Currently just a vector.
 #' @param K Number of anticlusters to be formed.
-#' @param clusters A vector of length K that specifies the number of elements each cluster can contain. If this vector is not NULL, the lower and upper bounds will be disregarded.
+#' @param number_iterations: A number that defines how many times the steps in the search algorithm are repeated.
+#' @param clusters A vector of length K that specifies the number of elements each cluster can contain. 
+#' If this vector is not NULL, the lower and upper bounds will be disregarded.
 #' @param beta_max The algorithm begins with a pool of random initial solutions of size beta_max. 
 #'  Over time, the size of the solution pool decreases linearly until it reaches beta_min.
 #' @param beta_min The minimum solution pool size the algorithm should reach before making a determination.
-#' @param lower_bound Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.
-#' @param upper_bound Maximum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.
-#' @param theta_max Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min.
-#' @param theta_min Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min.
-#' @param eta_max Parameter for 
+#' @param lower_bound Minimum number of elements in each anticluster. By default, anticlusters are of equal size,
+#'  calculated as the total number of items divided by the number of clusters.
+#' @param upper_bound Maximum number of elements in each anticluster. By default, anticlusters are of equal size,
+#'  calculated as the total number of items divided by the number of clusters.
+#' @param theta_max Parameter for the strength of undirected perturbation, 
+#' which decreases linearly over time from theta_max to theta_min.
+#' @param theta_min Parameter for the strength of undirected perturbation, 
+#' which decreases linearly over time from theta_max to theta_min.
+#' @param eta_max Parameter that specifies how many times the steps in the direct perturbation are executed.
 #' @param alpha Parameter for weitghing the discrimitation of a slighlty worse local optiomal child solution.
-#' @param time_limit Maximum execution time of the algorithm (in seconds).
-#' @param return results contains everzthing, including vector result and its cost
+#' @param return results contains everything, including vector result and its cost
 #'     
-#' @details
+#' @details Details of the implementation of the algorithm can be found 
+#'  in the pseudocode of the paper Yang et al. (2022)
 #' 
-#' @return 
+#' @return a list including information about the cost, the result and the elapsed_time.
+#'  variable$result: A vector of length N that assigns a group (i.e, a number
+#'     between 1 and \code{K}) to each input element.
+#'  variable$score: calculated score of the objective function
+#'  variable$elapsed_time: runtime of the algorithm
 #' 
 #' @author Hannah Hengelbrock \email{Hannah.Hengelbrock@@hhu.de}, 
 #' Martin Papenberg \email{martin.papenberg@@hhu.de}
@@ -44,7 +54,7 @@
 #' ergebnis <- anticlust:::three_phase_search_anticlustering(dat, K, N)
 #'
 #' # Compute objectives funtion
-#' diversity_objective(distances, ergebnis$ergebnis)
+#' diversity_objective(distances, ergebnis$result)
 #' 
 #' # Compute comparision function
 #' ergebnis2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
@@ -67,20 +77,20 @@
 #'  pp. 925–953. ISSN: 0377-2217. DOI: https://doi.org/10.1016/j.ejor.2022.02.003. 
 #' 
 three_phase_search_anticlustering <- function(x, K, N,
-    max_iterations=100, clusters = NULL,
-    upper_bound  = NULL, lower_bound  = NULL, beta_max = 15, 
-    time_limit  = NULL, theta_max = NULL, theta_min = NULL, 
-    beta_min = NULL, eta_max=3, alpha=0.05) {
+    number_iterations=50, clusters = NULL, upper_bound  = NULL, lower_bound  = NULL, 
+    beta_max = 15,  theta_max = NULL, theta_min = NULL, beta_min = NULL, eta_max=3, alpha=0.05) {
 
-    #input_validation_threephase_search(x, K)
+    input_validation_threephase_search(x, K, N, clusters, number_iterations, upper_bound, 
+    theta_max, theta_min, lower_bound, beta_max, beta_min, eta_max, alpha)
+    
     distances <- convert_to_distances(x) 
- 
+
     if (is.null(lower_bound)) {
        lower_bound <- floor(N/K)
     } 
     if (is.null(upper_bound)) {
        upper_bound <- ceiling(N/K)
-    } 
+    }   
     
     if (N <= 400  & is.null(theta_max) & is.null(theta_min) & is.null(beta_min)) {
     	theta_max  <- 1.2
@@ -92,36 +102,25 @@ three_phase_search_anticlustering <- function(x, K, N,
     	beta_min  <- 1
     }
 
-    if (is.null(time_limit)) {
-       	if (N <= 120) { time_limit <- 3 }
-        else if (N <= 240) { time_limit <- 20 }
-        else if (N <= 480) { time_limit <- 120 }
-        else if (N <= 960) { time_limit <- 600 }
-        else if (N <= 2000) { time_limit <- 1200 }
-        else if (N <= 3000) { time_limit <- 3000 }
-        else { time_limit  <- 5000 }
-    } 
-
      # create result vector for results to use in C
     result_vector <- numeric(N)
     
-    # check if K and clusters match 
+    # If clusters are not predefined, set the value to -1 so the C implementation knows 
+    # to evenly distribute the number of elements based on K and the boundaries.
     if (is.null(clusters)) {
       clusters <- rep(-1, K)
-    } else if (length(clusters) != K) {
-       stop("Number of giving clusters is not K.")
     }
      
      results <- .C("three_phase_search_dynamic_population_size",
                   distances = as.double(distances),
                   N_in = as.integer(N),
                   K_in = as.integer(K),
-                  number_of_iterations = as.integer(max_iterations),
+                  number_of_iterations = as.integer(number_iterations),
                   clusters = as.integer(clusters),
                   upper_bound = as.integer(upper_bound),
                   lower_bound = as.integer(lower_bound),
                   Beta_max = as.integer(beta_max),
-                  time_limit = as.integer(time_limit),
+                  elapsed_time = as.integer(0),
                   Theta_max = as.double(theta_max),
                   Theta_min = as.double(theta_min),
                   Beta_min = as.integer(beta_min),
@@ -141,11 +140,25 @@ three_phase_search_anticlustering <- function(x, K, N,
     return(results)
 }
 
-input_validation_threephase_search <- function(x, K) {
-  
-  return(input_validation_anticlustering(
-    x, K, objective = "diversity", method = "brusco", 
-    preclustering = FALSE, categories = NULL,
-    repetitions = 1, standardize = FALSE
-  ))
+input_validation_threephase_search <- function(x, K, N, clusters, number_iterations, upper_bound, lower_bound, 
+theta_max, theta_min, beta_max, beta_min, eta_max, alpha) {
+
+    if (!is.null(clusters)) {
+    validate_input(clusters, "clusters", len = K)
+    }
+    validate_input(number_iterations, "number_iterations", greater_than = 0, must_be_integer = TRUE)
+    validate_input(K, "K",  must_be_integer = TRUE, not_na = TRUE)
+    validate_input(K, "N",  must_be_integer = TRUE, not_na = TRUE)
+    validate_input(lower_bound, "lower_bound", greater_than = 0, must_be_integer = TRUE)
+    validate_input(upper_bound, "upper_bound", greater_than = 0, must_be_integer = TRUE)
+    validate_input(beta_max, "beta_max", greater_than = 0, must_be_integer = TRUE)
+    validate_input(beta_min, "beta_min", greater_than = 0, must_be_integer = TRUE)
+    validate_input(eta_max, "eta_max", greater_than = 0, must_be_integer = TRUE)
+    validate_input(theta_max, "theta_max", greater_than = 0.0)
+    validate_input(theta_min, "theta_min", greater_than = 0.0)
+    validate_input(eta_max, "eta_max", greater_than = 0, must_be_integer = TRUE)
+    validate_input(alpha, "alpha", greater_than = 0.0)
+    #input_validation_anticlustering(x, K, objective = "diversity", method = "brusco", 
+    #   preclustering = FALSE, categories = NULL,
+    #  repetitions = 1, standardize = FALSE)
 }

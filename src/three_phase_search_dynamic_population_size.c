@@ -63,17 +63,24 @@ int *SizeG; //c_g
  * param *distannces: vector of data points (in R, this is a distance matrix,
  *         the matrix structure must be restored in C)
  * param *N_in: The number of elements (i.e., number of "rows" in *data)
- * param *K_in: The number of clusters
- * param *C: The number of categories
- * param *lower_bound: Minimum number of elements in each anticluster.
+ * param *K_in: The number of clusters. When lower_bound and upper_boound are set to the number of K, 
+ *              the clusters will be equally sized. 
+ * param *number_of_iterations: A number that defines how many times the steps in the search algorithm are repeated.
+ * param *clusters: A predefined vector of length K specifies the number of elements in each cluster.
+ *               If a default vector [-1] is provided, cluster sizes will be determined based 
+ *               on the lower and upper bounds. When a cluster size array is provided, 
+ *               the lower and upper bounds are ignored as they become redundant.
+ * param *lower_bound: Minimum number of elements in each anticluster. 
  * param *upper_bound: Maximum number of elements in each anticluster.
  * param *Beta_max: The algorithm begins with a pool of random initial solutions of size beta_max. 
  *                   Over time, the size of the solution pool decreases linearly until it reaches beta_min.
- * param *time_limit:  Maximum execution time of the algorithm (in seconds)
- * param *Theta_max: Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..
- * param *Theta_min: Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min..
+ * param *elapsed_time: Measures the runtime of the algotihm (in seconds)
+ * param *Theta_max: Parameter for the strength of undirected perturbation,
+ *                   which decreases linearly over time from theta_max to theta_min..
+ * param *Theta_min: Parameter for the strength of undirected perturbation, 
+ *                   which decreases linearly over time from theta_max to theta_min..
  * param *Beta_min: The minimum solution pool size the algorithm should reach before making a determination.
- * param *Eta_max: .
+ * param *Eta_max: A parameter that specifies how many times the steps in the direct perturbation are executed.
  * param *Alpha: Parameter for weitghing the discrimitation of a slighlty worse local optiomal child solution
  *               in Yang et al. set to 0.05 (might differ due to different implemetnation of calculation).
  * param *result: Calculated assignment of elements to clusters. Emptz vector.
@@ -94,7 +101,7 @@ void three_phase_search_dynamic_population_size(
                       int *upper_bound, 
                       int *lower_bound, 
 											int *Beta_max, 
-											int *time_limit,
+											int *elapsed_time,
 											double *Theta_max,
 											double *Theta_min,
 											int *Beta_min,
@@ -110,7 +117,7 @@ void three_phase_search_dynamic_population_size(
   theta_max = *Theta_max;
   beta_min = *Beta_min;
   eta_max = *Eta_max;
-  Time_limit =  *time_limit;
+  Time_limit =  *elapsed_time;
   alpha = *Alpha;
   maxNumberIterations = *number_of_iterations;
   
@@ -169,6 +176,7 @@ void three_phase_search_dynamic_population_size(
     result[i] = S_b.s[i];
   }
   *score = S_b.cost;
+  *elapsed_time = Time_limit;
   
   // Remember to free the allocated memory after use
   for (int i = 0; i < N; i++) {
@@ -279,7 +287,7 @@ void SearchAlgorithm() {
     // Stop measuring time and calculate the elapsed time
     clock_t end_time = clock();
     double elapsed_time = (double) (end_time - start_time)/CLOCKS_PER_SEC;
-    Rprintf("The run time of the distance_clustering algortihm in seconds is: %f\n", elapsed_time);
+    Time_limit = elapsed_time;
 }
 
 /* Algorithm 2: initializes a solution S */

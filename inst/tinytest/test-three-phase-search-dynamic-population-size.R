@@ -136,3 +136,24 @@ expect_true(all(frequency_in_range), info = "is in boundaries")
 frequency
 result_cluster$upper_bound
 
+
+# Test problematic cases
+
+expect_error(
+  anticlust:::three_phase_search_anticlustering(distances2, K2, N2, clusters=c(1)),
+  pattern = "len"
+)
+
+expect_error(
+  anticlust:::three_phase_search_anticlustering(distances2, K2, N2, alpha=-1),
+  pattern = "alpha must be greater than 0"
+)
+
+expect_error(
+  anticlust:::three_phase_search_anticlustering(distances2, K2, N2, eta_max=1.2),
+  pattern = "must be integer"
+)
+
+
+
+

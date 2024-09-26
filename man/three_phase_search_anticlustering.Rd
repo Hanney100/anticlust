@@ -9,12 +9,11 @@ three_phase_search_anticlustering(
   x,
   K,
   N,
-  max_iterations = 100,
+  number_iterations = 50,
   clusters = NULL,
   upper_bound = NULL,
   lower_bound = NULL,
   beta_max = 15,
-  time_limit = NULL,
   theta_max = NULL,
   theta_min = NULL,
   beta_min = NULL,
@@ -25,30 +24,42 @@ three_phase_search_anticlustering(
 \arguments{
 \item{K}{Number of anticlusters to be formed.}
 
-\item{clusters}{A vector of length K that specifies the number of elements each cluster can contain. If this vector is not NULL, the lower and upper bounds will be disregarded.}
+\item{clusters}{A vector of length K that specifies the number of elements each cluster can contain. 
+If this vector is not NULL, the lower and upper bounds will be disregarded.}
 
-\item{upper_bound}{Maximum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.}
+\item{upper_bound}{Maximum number of elements in each anticluster. By default, anticlusters are of equal size,
+calculated as the total number of items divided by the number of clusters.}
 
-\item{lower_bound}{Minimum number of elements in each anticluster. By default, anticlusters are of equal size, calculated as the total number of items divided by the number of clusters.}
+\item{lower_bound}{Minimum number of elements in each anticluster. By default, anticlusters are of equal size,
+calculated as the total number of items divided by the number of clusters.}
 
 \item{beta_max}{The algorithm begins with a pool of random initial solutions of size beta_max. 
 Over time, the size of the solution pool decreases linearly until it reaches beta_min.}
 
-\item{time_limit}{Maximum execution time of the algorithm (in seconds).}
+\item{theta_max}{Parameter for the strength of undirected perturbation, 
+which decreases linearly over time from theta_max to theta_min.}
 
-\item{theta_max}{Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min.}
-
-\item{theta_min}{Parameter for the strength of undirected perturbation, which decreases linearly over time from theta_max to theta_min.}
+\item{theta_min}{Parameter for the strength of undirected perturbation, 
+which decreases linearly over time from theta_max to theta_min.}
 
 \item{beta_min}{The minimum solution pool size the algorithm should reach before making a determination.}
 
-\item{eta_max}{Parameter for}
+\item{eta_max}{Parameter that specifies how many times the steps in the direct perturbation are executed.}
 
 \item{alpha}{Parameter for weitghing the discrimitation of a slighlty worse local optiomal child solution.}
 
 \item{matrix}{The data input. Currently just a vector.}
 
-\item{return}{results contains everzthing, including vector result and its cost}
+\item{number_iterations:}{A number that defines how many times the steps in the search algorithm are repeated.}
+
+\item{return}{results contains everything, including vector result and its cost}
+}
+\value{
+a list including information about the cost, the result and the elapsed_time.
+ variable$result: A vector of length N that assigns a group (i.e, a number
+    between 1 and \code{K}) to each input element.
+ variable$score: calculated score of the objective function
+ variable$elapsed_time: runtime of the algorithm
 }
 \description{
 This function implements the three phase search algorithm TPSPD for
@@ -56,6 +67,10 @@ anticlustering by Yang et al. (2022; <doi.org/10.1016/j.ejor.2022.02.003>).
 The description of their algorithm is
 given in Section 2 of their paper (in particular, see the
 Pseudocode in Algorithm 1).
+}
+\details{
+Details of the implementation of the algorithm can be found 
+ in the pseudocode of the paper Yang et al. (2022)
 }
 \note{
 Important! for windows and linux there is a differnt definition of thie run time due to clock(),
@@ -75,7 +90,7 @@ distances <- dist(dat)
 ergebnis <- anticlust:::three_phase_search_anticlustering(dat, K, N)
 
 # Compute objectives funtion
-diversity_objective(distances, ergebnis$ergebnis)
+diversity_objective(distances, ergebnis$result)
 
 # Compute comparision function
 ergebnis2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
