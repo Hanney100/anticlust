@@ -17,6 +17,8 @@ typedef struct {
 
 int random_int(int max);
 double uniform_rnd_number(void);
+void swap_elements(int* a, int* b);
+void fisher_yates_shuffle(int arr[], int n);
 void ClearDeltaMatrix();
 void BuildDeltaMatrix();
 void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup);

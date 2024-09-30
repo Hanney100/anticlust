@@ -304,18 +304,44 @@ int Cmpare(const void *a, const void *b) {
     return (solB->cost - solA->cost); // Return positive if b is greater, negative if a is greater
 }
 
+// Function to swap two elements
+void swap_elements(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+
+void fisher_yates_shuffle(int arr[], int n) {
+    // Fisher-Yates shuffle to generate a random permutation 
+    for (int i = n - 1; i > 0; i--) {
+        // Generate a random index j where 0 <= j <= i
+        int j = random_int(i + 1);
+
+        // Swap arr[i] and arr[j]
+        swap_elements(&arr[i], &arr[j]);
+    }
+}
+
 void RandomInitialSol(int s[], int SizeG[]) {
 	/* Algorithm 2: initializes a random solution that respects the group size constraints */
+
 
     // Allocates memory
 	int* isAssigned = (int *)malloc(N * sizeof(int));  // Tracks if an element is assigned
 	int* groupSize =(int *)malloc(K * sizeof(int)); // Stores the size of each group
+    int* permutedIndexList =(int *)malloc(N * sizeof(int)); // Stores the size of each group
+    int* permutedGroupList =(int *)malloc(K * sizeof(int)); // Stores the size of each group
 	
     int i;
 	for (i = 0; i < K; i++) groupSize[i] = 0;
 	for (i = 0; i < N; i++) isAssigned[i] = 0;
+    for (i = 0; i < N; i++) permutedIndexList[i] = i;
+    for (i = 0; i < K; i++) permutedGroupList[i] = i;
 
-	
+    fisher_yates_shuffle(permutedIndexList, N);
+    fisher_yates_shuffle(permutedGroupList, K);
+
     // Calculate the total number of elements that need to satisfy the lower bounds
     int total_assigned = 0;
     int total_LB = 0;
@@ -324,36 +350,34 @@ void RandomInitialSol(int s[], int SizeG[]) {
     }
 
     // First phase: Assign elements to satisfy lower bound constraints (LB)
+    int selected_element = 0;
     while (total_assigned < total_LB) {
-        int selected_element = random_int(N);
 
-        if (!isAssigned[selected_element]) {  // Only assign unassigned elements
-            for (int group = 0; group < K; group++) {
-                if (groupSize[group] < LB[group]) {
-                    s[selected_element] = group;
-                    isAssigned[selected_element] = 1;
-                    groupSize[group]++;
-                    total_assigned++;
-                    break;  // Move to the next element once assigned
-                }
+        for (int group = 0; group < K; group++) {
+            if (groupSize[group] < LB[group]) {
+                s[permutedIndexList[selected_element]] = group;
+                isAssigned[permutedIndexList[selected_element]] = 1;
+                groupSize[group]++;
+                total_assigned++;
+                break;  // Move to the next element once assigned
             }
         }
+        selected_element++;
     }
-	
+
 	// Second phase: Assign remaining elements, respecting the upper bound (UB)
     while (total_assigned < N) {
-        int selected_element = random_int(N);
-        if (!isAssigned[selected_element]) {
-            int group;
-            do {
-                group = random_int(K);  // Randomly select a group
-            } while (groupSize[group] >= UB[group]);  // Ensure group doesn't exceed UB
-
-            s[selected_element] = group;
-            isAssigned[selected_element] = 1;
-            groupSize[group]++;
-            total_assigned++;
+        for (int group = 0; group < K; group++) {
+            if (groupSize[permutedGroupList[group]] < UB[permutedGroupList[group]]) {
+                s[permutedIndexList[selected_element]] = permutedGroupList[group];
+                isAssigned[permutedIndexList[selected_element]] = 1;
+                groupSize[permutedGroupList[group]]++;
+                total_assigned++;
+                break;
+            }
         }
+        fisher_yates_shuffle(permutedGroupList, K);
+        selected_element++;
     }
 
     // Copy the final group sizes into the output array SizeG
@@ -363,6 +387,7 @@ void RandomInitialSol(int s[], int SizeG[]) {
 	free(groupSize); groupSize = NULL;
 	free(isAssigned); isAssigned = NULL;
 }
+
 
 void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost) {
     const double DELTA_THRESHOLD = 0.0001;  // Define a constant for comparison threshold
