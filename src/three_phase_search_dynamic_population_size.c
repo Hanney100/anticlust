@@ -386,6 +386,8 @@ void RandomInitialSol(int s[], int SizeG[]) {
     // Free allocated memory
 	free(groupSize); groupSize = NULL;
 	free(isAssigned); isAssigned = NULL;
+    free(permutedIndexList); permutedIndexList = NULL; 
+    free(permutedGroupList); permutedGroupList = NULL;
 }
 
 
@@ -597,7 +599,7 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
                 i = (i + 1) % K;
             } while (UnderLB[i] == 0);
             for (j = 0; j < K; j++) {
-                if (Avg[j][i] > maxAvgCon) {
+                if (Avg[j][i] > maxAvgCon && Rd[j]!=-1) {
                     maxAvgCon = Avg[j][i];
                     selectedGroup = j;
                 }
@@ -1069,8 +1071,14 @@ void AssignMemory() {
     
     S = (Solution*)malloc(beta_max * sizeof(Solution));
     O = (Solution*)malloc(beta_max * sizeof(Solution));
-    
     int i;
+    for (i = 0; i < beta_max; i++) {
+        S[i].s = (int*)malloc(N * sizeof(int));
+        O[i].s = (int*)malloc(N * sizeof(int));
+        S[i].SizeG = (int*)malloc(K * sizeof(int));
+        O[i].SizeG = (int*)malloc(K * sizeof(int));
+    }    
+    
     Delta_Matrix = (double**)malloc(N * sizeof(double*));
     for (i = 0; i < N; i++) Delta_Matrix[i] = (double*)malloc(K * sizeof(double));
     Delta_Matrix_p1 = (double**)malloc(N * sizeof(double*));
@@ -1080,16 +1088,6 @@ void AssignMemory() {
     groupDiversity = (double*)malloc(K * sizeof(double));
     groupDiversity_p1 = (double*)malloc(K * sizeof(double));
     groupDiversity_p2 = (double*)malloc(K * sizeof(double));
-    
-    for (i = 0; i < beta_max; i++) {
-        S[i].s = (int*)malloc(N * sizeof(int));
-        O[i].s = (int*)malloc(N * sizeof(int));
-    }
-    
-    for (i = 0; i < beta_max; i++) {
-        S[i].SizeG = (int*)malloc(K * sizeof(int));
-        O[i].SizeG = (int*)malloc(K * sizeof(int));
-    }
     
     CS.s = (int*)malloc(N * sizeof(int));
     S_b.s = (int*)malloc(N * sizeof(int));
@@ -1129,12 +1127,21 @@ void ReleaseMemory() {
     free(CS.SizeG); CS.SizeG = NULL;
     free(S_b.s); S_b.s = NULL;
     free(S_b.SizeG); S_b.SizeG = NULL;
+
+    int i;
+    for (i = 0; i < beta_max; i++) {
+        free(S[i].s); S[i].s = NULL;
+        free(S[i].SizeG); S[i].SizeG = NULL;
+        free(O[i].s); O[i].s = NULL;
+        free(O[i].SizeG); O[i].SizeG = NULL;
+    }
+    free(S); S = NULL;
+    free(O); O = NULL;
     
     free(LB); LB = NULL;
     free(UB); UB = NULL;
     free(Neighbors); Neighbors = NULL;
     
-    int i;
     for (i = 0; i < N; i++) {
         free(Delta_Matrix[i]); Delta_Matrix[i] = NULL;
         free(Delta_Matrix_p1[i]); Delta_Matrix_p1[i] = NULL;
