@@ -154,6 +154,11 @@ expect_error(
   pattern = "must be integer"
 )
 
+N <- 12
+M <- 2
+K <- 3
 
-
-
+dat <- matrix(rnorm(N * M), ncol = M)
+distances <- dist(dat)
+write.table(distances, file = "matrix1.txt", row.names = FALSE, col.names = FALSE)
+distances
