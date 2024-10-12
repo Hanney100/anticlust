@@ -52,7 +52,7 @@ distances <- dist(dat)
 
 result_cluster1 <- anticlust:::three_phase_search_anticlustering(distances, K, N)
 result_cluster2 <- anticlustering(distances, K=K, method="local-maximum", repetitions = 10)
-result_cluster3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "lpSolve")
+result_cluster3 <- optimal_anticlustering(distances, objective = "diversity", K=K, solver = "lpSolve", time_limit = 20)
 
 
 diversity1 <- diversity_objective(distances, result_cluster1$result)
@@ -186,31 +186,17 @@ result_cluster1$result
 result_cluster1$score
 
 result_cluster2 <- optimal_anticlustering(distances, objective = "dispersion", K=K, solver = "lpSolve")
-results <- optimal_dispersion(dat, K=K,solver = "symphony")$dispersion
-results
-result_cluster_diversity <- optimal_anticlustering(distances, K, objective = "diversity", K=K, solver = "lpSolve")
+results <- optimal_dispersion(dat, K=K, solver = "symphony")$dispersion
 
 dispersion1 <- dispersion_objective(distances, result_cluster1$result)
 dispersion2 <- dispersion_objective(distances, result_cluster2)
-result_cluster1$score
-dispersion1
-dispersion2
 
 expect_equal(dispersion1, dispersion2, info = "tdspd and lpsolve dispersion are identical")
-
 
 result1 <- convert_to_group_pattern(result_cluster1$result)
 result2 <- convert_to_group_pattern(result_cluster2)
 result1
 result2
 
-expect_true(all(result1 == result2), info = "tdspd and lpsolve are identical")
-
-result_cluster1$result
-result1
-result2
-result_cluster2
-
-plot_clusters(dat, clusters = result_cluster1$result, within_connection = TRUE, show_axes = TRUE)
-plot_clusters(dat, clusters = result_cluster2, within_connection = TRUE,show_axes = TRUE)
-
+#can have mutliple cluster labels since it is miniumm dispersion
+#expect_true(all(result1 == result2), info = "tdspd and lpsolve are identical")

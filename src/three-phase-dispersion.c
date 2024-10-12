@@ -34,6 +34,8 @@ extern int *s; // partition array for each v
 extern double objective;
 double *min_distance_per_cluster;
 int **min_distance_tuple;
+int* tuple1;
+int* tuple2;
 
 // Crosssover
 double *min_distance_per_cluster_p1;
@@ -64,6 +66,7 @@ void swapping(int ind1, int ind2, int *partition, int **s_min_distance_tuple, do
 double evaluate_objective(double *s_min_distance_per_cluster);
 void fill_arrays(int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void initialize_arrays(int **s_min_distance_tuple, double *s_min_distance_per_cluster);
+void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void SearchAlgorithmDisperion(void);
 void InitialSolDispersion(Solution *Solution);
@@ -152,6 +155,10 @@ void three_phase_search_dispersion(
     DistancesT[i] = (double*)malloc(N * sizeof(double));
     if (DistancesT[i] == NULL) { *mem_error = 1; return; }
   }
+
+  //Allocates memory for DoubleSearhNeigboorhood
+    tuple1 = (int *)malloc(2 * sizeof(int));
+    tuple2 = (int *)malloc(2 * sizeof(int));
     
   // Fill Distances and DistancesT with values from input
  // Rprintf("Distance matrix D =\n");
@@ -240,6 +247,8 @@ void three_phase_search_dispersion(
   free(DistancesT); DistancesT = NULL;
   free(LB); LB = NULL;
   free(UB); UB = NULL;
+  free(tuple1);
+  free(tuple2);
 
   Rprintf("Until now runs trhough.");
   
@@ -276,6 +285,21 @@ double evaluate_objective(double *s_min_distance_per_cluster) {
         f = fmin(f, s_min_distance_per_cluster[k]);
     }
     return f;
+}
+
+// convenience function that recalculates the min cluster distance of cluster k and changes the values in-place
+void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster) {
+    s_min_distance_per_cluster[k] = INFINITY;
+    for (int i = 0; i < N - 1; i++) {
+        if (partition[i] != k) continue;
+        for (int j = i + 1; j < N; j++) {
+            if (Distances[i][j] < s_min_distance_per_cluster[k] && partition[j] == k) {
+                s_min_distance_per_cluster[k] = Distances[i][j];
+                s_min_distance_tuple[k][0] = i;
+                s_min_distance_tuple[k][1] = j;
+            }
+        }
+    }
 }
 
 // Function to add an element to a cluster
@@ -323,10 +347,16 @@ void swapping(int ind1, int ind2, int *partition, int **s_min_distance_tuple, do
 
     // Temporarily hide ind1
     partition[ind1] = -1;
-    // IMPORTANT: add the next four lines
+
     // if either ind1/ind2 belong to their respective min_distance_tuple, ensure to recalculate the corresponding s_min_distance_per_cluster when adding ind1/ind2
-    if (ind1 == s_min_distance_tuple[g1][0] || ind1 == s_min_distance_tuple[g1][1]) s_min_distance_per_cluster[g1] = INFINITY;
-    if (ind2 == s_min_distance_tuple[g2][0] || ind2 == s_min_distance_tuple[g2][1]) s_min_distance_per_cluster[g2] = INFINITY;
+   if (ind1 == s_min_distance_tuple[g1][0] || ind1 == s_min_distance_tuple[g1][1]) {
+        recalculate_cluster_distance(g1,partition,s_min_distance_tuple,s_min_distance_per_cluster);
+    }
+    if (ind2 == s_min_distance_tuple[g2][0] || ind2 == s_min_distance_tuple[g2][1]) {
+        partition[ind2] = -1;
+        recalculate_cluster_distance(g2,partition,s_min_distance_tuple,s_min_distance_per_cluster);
+        partition[ind2] = g2;
+    }
     // the correct recalculation of s_min_distance_tuple happens in the adding-functions below
 
     // Add ind2 to the cluster of g1
@@ -510,16 +540,16 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
                         min_distance_per_cluster[g1] = old_f1;
                         min_distance_per_cluster[g] = old_f2;
                     } else {
-                        // printf("LocalSearch-Push: an improvement was detected!\n");
-                        // objective = evaluate_objective(min_distance_per_cluster);
-                        imp = 1;
+                        // maybe change this to a for loop 
+                        // when set to 1, the group protenitally can run a long time
+                        imp = 0;
                     }
                 }
             }
         }
 
         // Second loop: Swap pairs of elements between groups
-        for (v = 0; v < N; v++) {
+        for (v = 0; v < N-1; v++) {
             for (u = v + 1; u < N; u++) {
                 // Only swap if nodes are in different groups
                 if (s[v] != s[u]) {
@@ -527,6 +557,9 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
                     g2 = s[u];
                     old_f1 = min_distance_per_cluster[s[v]];
                     old_f2 = min_distance_per_cluster[s[u]];
+
+                    tuple1[0] = min_distance_tuple[g1][0]; tuple1[1] = min_distance_tuple[g1][1]; // maybe quicker to just set tuple1 = min_distance_tuple[g1]? Does that work?
+                    tuple2[0] = min_distance_tuple[g2][0]; tuple2[1] = min_distance_tuple[g2][1];
                     swapping(u, v, s, min_distance_tuple, min_distance_per_cluster); 
 
                     delta_f = min_distance_per_cluster[g2] - old_f2 + min_distance_per_cluster[g1] - old_f1; // IMPORTANT: typo: g2 instead of g
@@ -536,10 +569,12 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
                         s[u] = g2;
                         min_distance_per_cluster[g1] = old_f1;
                         min_distance_per_cluster[g2] = old_f2;
+                        min_distance_tuple[g1][0] = tuple1[0]; min_distance_tuple[g1][1] = tuple1[1];
+                        min_distance_tuple[g2][0] = tuple2[0]; min_distance_tuple[g2][1] = tuple2[1];
                     } else {
-                        // printf("LocalSearch-Swap: an improvement was detected!\n");
-                        // objective = evaluate_objective(min_distance_per_cluster);
-                        imp = 1;
+                        // maybe change this to a for loop 
+                        // when set to 1, the group protenitally can run a long time
+                        imp = 0;
                     }
                 }
             }
