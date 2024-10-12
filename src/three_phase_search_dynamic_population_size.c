@@ -109,7 +109,6 @@ void three_phase_search_dynamic_population_size(
 											int *result,
 											double *score,
 											int *mem_error) {
-  Rprintf("C is in diverity");
   N = *N_in;
   K = *K_in;
   beta_max = *Beta_max;  
@@ -915,7 +914,7 @@ double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], doub
     
     // Handle potential division by zero
     if (cost2 == 0.0) {
-        fprintf(stderr, "Error: Division by zero (cost2 is zero).\n");
+        Rprintf(stderr, "Error: Division by zero (cost2 is zero).\n");
         return -1;  
     }
 
