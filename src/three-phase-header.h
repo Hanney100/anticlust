@@ -7,14 +7,6 @@ typedef struct {
     double cost;   // global cost function value of solution
 } Solution;
 
-typedef struct {
-    int type;
-    int v;
-    int g;
-    int x;
-    int y;
-} Neighborhood;
-
 int random_int(int max);
 double uniform_rnd_number(void);
 void swap_elements(int* a, int* b);
@@ -28,7 +20,7 @@ void ReleaseMemory();
 void BuildNeighbors();
 void SearchAlgorithm();
 void InitialSol(Solution *S);
-void UndirectedPerturbation(int L, int partition[], int SizeGroup[]);
+void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]);
 void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost);
 void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], double cost1, double cost2);
