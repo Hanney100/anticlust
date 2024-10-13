@@ -474,24 +474,21 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
     *cost = objective;
 }
 
-void UndirectedPerturbation(int L, int partition[], int SizeGroup[]) {
+void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]) {
     /* Algorithm 4: Undirected Perturbation. Applies a strong perturbation to the partition */
 
     int current_index;
     int v, g, x, y;
     int oldGroup, swap;
 
-
     for (int i = 0; i < N; i++) {
         s[i] = partition[i];
     }
 
-    theta = L; 
     int count = 0;
     int NumberNeighbors = N * (N - 1) / 2 + N * K;
-
      while (count < theta) {
-        int perturb_type = random_int(NumberNeighbors); // Randomly choose between the two types of perturbations
+        int perturb_type = random_int(NumberNeighbors);
 
         if (perturb_type  < N * K) {  // Type 1: Random (element, group) perturbation
             int v = random_int(N); // Randomly choose an element v
@@ -519,7 +516,6 @@ void UndirectedPerturbation(int L, int partition[], int SizeGroup[]) {
         }
     }
 
-    // Copy the perturbed partition back to the original partition
     for (int i = 0; i < N; i++) {
         partition[i] = s[i];
     }
