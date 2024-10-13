@@ -26,7 +26,6 @@ Solution S_b; //best solution
 Solution CS;
 Solution *S; //S_i
 Solution *O; //O_i in crossover
-Neighborhood *Neighbors;
 
 //double neighboorhood local search
 int *s; // partition array for each v
@@ -166,9 +165,7 @@ void three_phase_search_dynamic_population_size(
   if (*mem_error == 1) {
     return;
   }
-  
-  BuildNeighbors();
-  
+    
   SearchAlgorithm();
   
   //save S_b -> solution with result
@@ -493,28 +490,27 @@ void UndirectedPerturbation(int L, int partition[], int SizeGroup[]) {
     int count = 0;
     int NumberNeighbors = N * (N - 1) / 2 + N * K;
 
-    // Perturbation loop
-    while (count < theta) {
-        current_index = random_int(NumberNeighbors);
+     while (count < theta) {
+        int perturb_type = random_int(NumberNeighbors); // Randomly choose between the two types of perturbations
 
-        if (Neighbors[current_index].type == 1) { // Type 1 neighbor: (element, group)
-            v = Neighbors[current_index].v;
-            g = Neighbors[current_index].g;
+        if (perturb_type  < N * K) {  // Type 1: Random (element, group) perturbation
+            int v = random_int(N); // Randomly choose an element v
+            int g = random_int(K); // Randomly choose a group g
 
-            // Apply perturbation if constraints are met
-            if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
+             if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
                 oldGroup = s[v];
                 SizeGroup[oldGroup]--;
                 SizeGroup[g]++;
                 s[v] = g;
                 count++;
             }
-        } else if (Neighbors[current_index].type == 2) { // Type 2 neighbor: (element x, element y)
-            x = Neighbors[current_index].x;
-            y = Neighbors[current_index].y;
+        } 
+        else { // Type 2: Random (element x, element y) perturbation
+            int x = random_int(N); // Randomly choose element x
+            int y = random_int(N); // Randomly choose element y
 
             // Apply perturbation if elements are in different groups
-            if (s[x] != s[y]) {
+            if (s[x] != s[y] && x != y) {
                 swap = s[x];
                 s[x] = s[y];
                 s[y] = swap;
@@ -947,31 +943,6 @@ double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], doub
     return  cost1 / cost2 +  alpha *  dissimilarityFactor;
 }
 
-void BuildNeighbors() {
-	/* Initializes the neighbor structure for optimization */
-	int i, j;
-	int count = 0;
-	
-    // Type 1 neighbors: (i, j) where each element i can be in group j
-	for (i = 0; i < N; i++)
-		for (j = 0; j < K; j++) {
-			Neighbors[count].type = 1;
-			Neighbors[count].v = i;
-			Neighbors[count].g = j;
-			count++;
-		}
-
-    // Type 2 neighbors: (i, j) where each pair of elements (i, j) are neighbors    
-	for (i = 0; i < N; i++)
-		for (j = i + 1; j < N; j++) {
-			Neighbors[count].type = 2;
-			Neighbors[count].x = i;
-			Neighbors[count].y = j;
-			count++;
-		}
-		
-}
-
 void ClearDeltaMatrix() {
 	/* Resets the delta_f matrix */
     for (int i = 0; i < N; ++i) {
@@ -1095,8 +1066,6 @@ void AssignMemory() {
     CS.SizeG = (int*)malloc(K * sizeof(int));
     S_b.SizeG = (int*)malloc(K * sizeof(int));
     
-    Neighbors = (Neighborhood*)malloc((N * (N - 1) / 2 + N * K) * sizeof(Neighborhood));
-    
     Avg = (double**)malloc(K * sizeof(double*));
     for (i = 0; i < K; i++) Avg[i] = (double*)malloc(K * sizeof(double));
     Rd = (int*)malloc(K * sizeof(int));
@@ -1140,7 +1109,6 @@ void ReleaseMemory() {
     
     free(LB); LB = NULL;
     free(UB); UB = NULL;
-    free(Neighbors); Neighbors = NULL;
     
     for (i = 0; i < N; i++) {
         free(Delta_Matrix[i]); Delta_Matrix[i] = NULL;

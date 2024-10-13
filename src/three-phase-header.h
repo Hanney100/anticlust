@@ -7,14 +7,6 @@ typedef struct {
     double cost;   // global cost function value of solution
 } Solution;
 
-typedef struct {
-    int type;
-    int v;
-    int g;
-    int x;
-    int y;
-} Neighborhood;
-
 int random_int(int max);
 double uniform_rnd_number(void);
 void swap_elements(int* a, int* b);
