@@ -189,6 +189,7 @@ result_cluster2 <- optimal_anticlustering(distances, objective = "dispersion", K
 results <- optimal_dispersion(dat, K=K, solver = "symphony")$dispersion
 
 dispersion1 <- dispersion_objective(distances, result_cluster1$result)
+dispersion1
 dispersion2 <- dispersion_objective(distances, result_cluster2)
 
 expect_equal(dispersion1, dispersion2, info = "tdspd and lpsolve dispersion are identical")
@@ -200,3 +201,4 @@ result2
 
 #can have mutliple cluster labels since it is miniumm dispersion
 #expect_true(all(result1 == result2), info = "tdspd and lpsolve are identical")
+

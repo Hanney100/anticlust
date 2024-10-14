@@ -27,7 +27,17 @@ extern Solution S_b; //best solution
 extern Solution CS;
 Solution *S_D; //S_i
 Solution *O_D; //O_i in crossover
-extern Neighborhood *Neighbors;
+
+
+typedef struct {
+    int type;
+    int v;
+    int g;
+    int x;
+    int y;
+} Neighborhood;
+
+Neighborhood *Neighbors;
 
 //double neighboorhood local search
 extern int *s; // partition array for each v
