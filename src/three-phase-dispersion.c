@@ -85,6 +85,7 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]);
 void AssignMemoryDispersion();
+void BuildNeighbors();
 void ReleaseMemoryDispersion();
 
 /* TPSPD for Anticlustering Based on a Distance matrix
