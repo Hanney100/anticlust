@@ -256,6 +256,30 @@ void three_phase_search_dispersion(
   ReleaseMemoryDispersion();
 }
 
+void BuildNeighbors() {
+	/* Initializes the neighbor structure for optimization */
+	int i, j;
+	int count = 0;
+	
+    // Type 1 neighbors: (i, j) where each element i can be in group j
+	for (i = 0; i < N; i++)
+		for (j = 0; j < K; j++) {
+			Neighbors[count].type = 1;
+			Neighbors[count].v = i;
+			Neighbors[count].g = j;
+			count++;
+		}
+    // Type 2 neighbors: (i, j) where each pair of elements (i, j) are neighbors    
+	for (i = 0; i < N; i++)
+		for (j = i + 1; j < N; j++) {
+			Neighbors[count].type = 2;
+			Neighbors[count].x = i;
+			Neighbors[count].y = j;
+			count++;
+		}
+		
+}
+
 void initialize_arrays(int **s_min_distance_tuple, double *s_min_distance_per_cluster) {
     for (int k = 0; k < K; k++) {
         s_min_distance_per_cluster[k] = INFINITY;
