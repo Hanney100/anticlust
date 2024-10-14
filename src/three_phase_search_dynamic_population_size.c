@@ -914,7 +914,7 @@ double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], doub
     
     // Handle potential division by zero
     if (cost2 == 0.0) {
-        Rprintf(stderr, "Error: Division by zero (cost2 is zero).\n");
+        Rprintf("Error: Division by zero (cost2 is zero).\n");
         return -1;  
     }
 
