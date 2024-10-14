@@ -57,6 +57,19 @@ double** Avg;
 int* Rd, * UnderLB; //Rd=R
 int *SizeG; //c_g
 
+void ClearDeltaMatrix();
+void BuildDeltaMatrix();
+void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup);
+void BuildGroupDiversityForCrossover();
+void AssignMemory();
+void ReleaseMemory();
+void SearchAlgorithm();
+void InitialSol(Solution *S);
+void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]);
+void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost);
+void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[]);
+void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]);
+
 /* TPSPD for Anticlustering Based on a Distance matrix
  * 
  * param *distannces: vector of data points (in R, this is a distance matrix,
@@ -476,7 +489,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
 void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]) {
     /* Algorithm 4: Undirected Perturbation. Applies a strong perturbation to the partition */
 
-    int current_index;
+    int perturb_type;
     int v, g, x, y;
     int oldGroup, swap;
 
@@ -487,11 +500,11 @@ void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]) {
     int count = 0;
     int NumberNeighbors = N * (N - 1) / 2 + N * K;
      while (count < theta) {
-        int perturb_type = random_int(NumberNeighbors);
+        perturb_type = random_int(NumberNeighbors);
 
         if (perturb_type  < N * K) {  // Type 1: Random (element, group) perturbation
-            int v = random_int(N); // Randomly choose an element v
-            int g = random_int(K); // Randomly choose a group g
+            v = random_int(N); // Randomly choose an element v
+            g = random_int(K); // Randomly choose a group g
 
              if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
                 oldGroup = s[v];
@@ -502,8 +515,8 @@ void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]) {
             }
         } 
         else { // Type 2: Random (element x, element y) perturbation
-            int x = random_int(N); // Randomly choose element x
-            int y = random_int(N); // Randomly choose element y
+            x = random_int(N); // Randomly choose element x
+            y = random_int(N); // Randomly choose element y
 
             // Apply perturbation if elements are in different groups
             if (s[x] != s[y] && x != y) {
