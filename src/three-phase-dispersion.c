@@ -534,7 +534,7 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
                     } else {
                         // maybe change this to a for loop 
                         // when set to 1, the group protenitally can run a long time
-                        imp = 1;
+                        imp = 0;
                     }
                 }
             }
@@ -566,7 +566,7 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
                     } else {
                         // maybe change this to a for loop 
                         // when set to 1, the group protenitally can run a long time
-                        imp = 1;
+                        imp = 0;
                     }
                 }
             }
