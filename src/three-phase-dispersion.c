@@ -27,6 +27,7 @@ extern Solution S_b; //best solution
 extern Solution CS;
 Solution *S_D; //S_i
 Solution *O_D; //O_i in crossover
+extern Neighborhood *Neighbors;
 
 //double neighboorhood local search
 extern int *s; // partition array for each v
@@ -66,9 +67,10 @@ double evaluate_objective(double *s_min_distance_per_cluster);
 void fill_arrays(int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void initialize_arrays(int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
+void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void SearchAlgorithmDisperion(void);
 void InitialSolDispersion(Solution *Solution);
-void UndirectedPerturbationDispersion(int theta, int partition[], int SizeGroup[]);
+void UndirectedPerturbationDispersion(int L, int partition[], int SizeGroup[]);
 void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]);
@@ -205,6 +207,9 @@ void three_phase_search_dispersion(
   if (*mem_error == 1) {
     return;
   }
+  
+
+  BuildNeighbors();
   
   SearchAlgorithmDisperion();
   
@@ -541,10 +546,10 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
         *cost = objective;
 }
 
-void UndirectedPerturbationDispersion(int theta, int partition[], int SizeGroup[]) {
+void UndirectedPerturbationDispersion(int L, int partition[], int SizeGroup[]) {
     /* Algorithm 4: Undirected Perturbation. Applies a strong perturbation to the partition */
 
-    int perturb_type;
+    int current_index;
     int v, g, x, y;
     int oldGroup, swap;
 
@@ -552,30 +557,32 @@ void UndirectedPerturbationDispersion(int theta, int partition[], int SizeGroup[
         s[i] = partition[i];
     }
 
+    theta = L; 
     int count = 0;
     int NumberNeighbors = N * (N - 1) / 2 + N * K;
 
+    // Perturbation loop
     while (count < theta) {
-        perturb_type = random_int(NumberNeighbors);
+        current_index = random_int(NumberNeighbors);
 
-        if (perturb_type  < N * K) {  // Type 1: Random (element, group) perturbation
-            v = random_int(N); // Randomly choose an element v
-            g = random_int(K); // Randomly choose a group g
+        if (Neighbors[current_index].type == 1) { // Type 1 neighbor: (element, group)
+            v = Neighbors[current_index].v;
+            g = Neighbors[current_index].g;
 
-             if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
+            // Apply perturbation if constraints are met
+            if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
                 oldGroup = s[v];
                 SizeGroup[oldGroup]--;
                 SizeGroup[g]++;
                 s[v] = g;
                 count++;
             }
-        } 
-        else { // Type 2: Random (element x, element y) perturbation
-            x = random_int(N); // Randomly choose element x
-            y = random_int(N); // Randomly choose element y
+        } else if (Neighbors[current_index].type == 2) { // Type 2 neighbor: (element x, element y)
+            x = Neighbors[current_index].x;
+            y = Neighbors[current_index].y;
 
             // Apply perturbation if elements are in different groups
-            if (s[x] != s[y] && x != y) {
+            if (s[x] != s[y]) {
                 swap = s[x];
                 s[x] = s[y];
                 s[y] = swap;
@@ -1056,6 +1063,8 @@ void AssignMemoryDispersion() {
     CS.SizeG = (int*)malloc(K * sizeof(int));
     S_b.SizeG = (int*)malloc(K * sizeof(int));
     
+    Neighbors = (Neighborhood*)malloc((N * (N - 1) / 2 + N * K) * sizeof(Neighborhood));
+    
     Rd = (int*)malloc(K * sizeof(int));
     for (i = 0; i < K; i++) Rd[i] = 0;
     UnderLB = (int*)malloc(K * sizeof(int));
@@ -1087,7 +1096,7 @@ void ReleaseMemoryDispersion() {
     
    // Rprintf("relesee dispersion Until now runs trhough.");
     // IMPORTANT: releasing S_D and O_D like for TPSDP leads to error!
-    //int i;
+    int i;
     //for (i = 0; i < beta_max; i++) {
       //  free(S_D[i].s); S_D[i].s = NULL;
        // free(S_D[i].SizeG); S_D[i].SizeG = NULL;
@@ -1101,6 +1110,7 @@ void ReleaseMemoryDispersion() {
        
     free(LB); LB = NULL;
     free(UB); UB = NULL;
+    free(Neighbors); Neighbors = NULL;
 
     free(Rd); Rd = NULL;
     free(UnderLB); UnderLB = NULL;
