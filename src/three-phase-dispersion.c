@@ -456,8 +456,7 @@ void InitialSolDispersion(Solution *solution) {
 
 void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost) {
 
-    int i, v, g, u;
-    int imp;
+    int v, g, u;
 
     // Initialize the delta_f value and tuple arrays
     double delta_f = -99999.0;
@@ -465,6 +464,7 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
 
     int g1, g2;
     double old_f1, old_f2;
+    int imp;
     do { 
         imp = 0;  // Reset improvement flag
 
@@ -1030,7 +1030,7 @@ void ReleaseMemoryDispersion() {
     
    // Rprintf("relesee dispersion Until now runs trhough.");
     // IMPORTANT: releasing S_D and O_D like for TPSDP leads to error!
-    int i;
+    //int i;
     //for (i = 0; i < beta_max; i++) {
       //  free(S_D[i].s); S_D[i].s = NULL;
        // free(S_D[i].SizeG); S_D[i].SizeG = NULL;

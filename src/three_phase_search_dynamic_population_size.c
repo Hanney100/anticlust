@@ -34,7 +34,6 @@ double objective;
 double **Delta_Matrix;  // incremental matrix 
 double **Delta_Matrix_p1;
 double **Delta_Matrix_p2;
-double *groupDiversity;
 double *groupDiversity_p1;
 double *groupDiversity_p2;
 int *SelectEle;
@@ -389,17 +388,16 @@ void RandomInitialSol(int s[], int SizeG[]) {
 
 void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost) {
     const double DELTA_THRESHOLD = 0.0001;  // Define a constant for comparison threshold
-    int i, v, g, u;
+    int v, g, u;
     int oldGroup, oldGroup1, swap;
-    int imp;
 
     // Build the delta_f matrix for cost changes
     BuildDeltaMatrix(partition);
 
     // Initialize the delta_f value
     double delta_f = -99999.0;
-
-    while (imp == 1){
+    int imp;
+    do {
         imp = 0;  // Reset improvement flag
 
         // First loop: Move individual elements to improve partition
@@ -408,7 +406,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                 // Check if moving `v` to `group` is valid and beneficial
                 if ((partition[v] != g) && (SizeGroup[partition[v]] > LB[partition[v]]) 
                      && (SizeGroup[g] < UB[g])) {
-                    delta_f = Delta_Matrix[v][g] - Delta_Matrix[v][s[v]];
+                    delta_f = Delta_Matrix[v][g] - Delta_Matrix[v][partition[v]];
 
                     if (delta_f > DELTA_THRESHOLD) {
                         oldGroup = partition[v];
@@ -437,7 +435,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
         for (v = 0; v < N; v++) {
             for (u = v + 1; u < N; u++) {
                 // Only swap if nodes are in different groups
-                if (partition[v] != s[u]) {
+                if (partition[v] != partition[u]) {
                     delta_f = (Delta_Matrix[v][partition[u]] - Delta_Matrix[v][partition[v]])
                           + (Delta_Matrix[u][partition[v]] - Delta_Matrix[u][partition[u]])
                           - DistancesT[v][u];
@@ -463,7 +461,8 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                 }
             }
         }
-    }
+    } while (imp == 1);
+    
 
     // Update the partition array with the final assignments
     *cost = objective;
@@ -738,10 +737,7 @@ void Crossover(int partition1[], int partition2[], int childSolution[], int scSi
             Delta_Matrix_p1[i][j] = Delta_Matrix[i][j];
         }
     }
-    BuildGroupDiversityForCrossover(p1);
-    for (i = 0; i < K; i++) {
-        groupDiversity_p1[i] = groupDiversity[i];
-    }
+    BuildGroupDiversityForCrossover(p1, groupDiversity_p1);
 
     // Initialize p2 with partition2
     for (i = 0; i < N; i++) {
@@ -753,10 +749,7 @@ void Crossover(int partition1[], int partition2[], int childSolution[], int scSi
             Delta_Matrix_p2[i][j] = Delta_Matrix[i][j];
         }
     }
-    BuildGroupDiversityForCrossover(p2);
-    for (i = 0; i < K; i++) {
-        groupDiversity_p2[i] = groupDiversity[i];
-    }
+    BuildGroupDiversityForCrossover(p2, groupDiversity_p2);
 
     int targetGroup = -1;
     // Main crossover process
@@ -955,7 +948,7 @@ void BuildDeltaMatrix(int partition[]) {
     objective /= 2.0;
 }
 
-void BuildGroupDiversityForCrossover(int partition[]) {
+void BuildGroupDiversityForCrossover(int partition[], int groupDiversity[]) {
 	/*  Builds group diversity values for crossover */
 	
     // Initialize group diversity values to zero
@@ -1006,7 +999,6 @@ void AssignMemory() {
     for (i = 0; i < N; i++) Delta_Matrix_p1[i] = (double*)malloc(K * sizeof(double));
     Delta_Matrix_p2 = (double**)malloc(N * sizeof(double*));
     for (i = 0; i < N; i++) Delta_Matrix_p2[i] = (double*)malloc(K * sizeof(double));
-    groupDiversity = (double*)malloc(K * sizeof(double));
     groupDiversity_p1 = (double*)malloc(K * sizeof(double));
     groupDiversity_p2 = (double*)malloc(K * sizeof(double));
     
@@ -1067,7 +1059,6 @@ void ReleaseMemory() {
     free(Delta_Matrix); Delta_Matrix = NULL;
     free(Delta_Matrix_p1); Delta_Matrix_p1 = NULL;
     free(Delta_Matrix_p2); Delta_Matrix_p2 = NULL;
-    free(groupDiversity); groupDiversity = NULL;
     free(groupDiversity_p1); groupDiversity_p1 = NULL;
     free(groupDiversity_p2); groupDiversity_p2 = NULL;
     free(Avg); Avg = NULL;
