@@ -204,13 +204,13 @@ void SearchAlgorithm() {
     int i, j, k;
     for (i = 0; i < beta_max; i++) {
         InitialSol(&CS);
+        S[i].cost = CS.cost;
         for (j = 0; j < N; j++) S[i].s[j] = CS.s[j];
         for (k = 0; k < K; k++) S[i].SizeG[k] = CS.SizeG[k];
-        S[i].cost = CS.cost;
         if (S[i].cost > S_b.cost) {
+            S_b.cost = S[i].cost;
             for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
             for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
-            S_b.cost = S[i].cost;
         }
     }
  
@@ -219,18 +219,19 @@ void SearchAlgorithm() {
         
         eta = (int)(theta * N / K);
         for (i = 0; i < beta_max; i++) {
+            O[i].cost = S[i].cost;
             for (j = 0; j < N; j++) O[i].s[j] = S[i].s[j];
             for (k = 0; k < K; k++) O[i].SizeG[k] = S[i].SizeG[k];
-            O[i].cost = S[i].cost;
+           
         }
         // Strong Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
             UndirectedPerturbation(eta, S[i].s, S[i].SizeG);
             DoubleNeighborhoodLocalSearch(S[i].s, S[i].SizeG, &S[i].cost);
             if (S[i].cost > S_b.cost) {
+                S_b.cost = S[i].cost;
                 for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
                 for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
-                S_b.cost = S[i].cost;
             }
         }
 
@@ -238,9 +239,9 @@ void SearchAlgorithm() {
         if (beta_max > 1) {
             for (i = 0; i < beta_max; i++) {
                 pickedSolution = random_int(beta_max);
-                do {
+                 while (pickedSolution == i) {
                     pickedSolution = (pickedSolution + 1) % beta_max;
-                } while (pickedSolution == i);
+                }
                 Crossover(S[i].s, S[pickedSolution].s, O[i].s, O[i].SizeG);
                 DoubleNeighborhoodLocalSearch(O[i].s, O[i].SizeG, &O[i].cost);
             }
@@ -250,14 +251,14 @@ void SearchAlgorithm() {
                     for (k = 0; k < K; k++) S[i].SizeG[k] = O[i].SizeG[k];
                     S[i].cost = O[i].cost;
                 } else if (LocalSearchCriterionCalcutlation(O[i].s, S[i].s, O[i].cost, S[i].cost) > 1) {
+                    S[i].cost = O[i].cost;
                     for (j = 0; j < N; j++) S[i].s[j] = O[i].s[j];
                     for (k = 0; k < K; k++) S[i].SizeG[k] = O[i].SizeG[k];
-                    S[i].cost = O[i].cost;
                 }
                 if (S[i].cost > S_b.cost) {
+                    S_b.cost = S[i].cost;
                     for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
                     for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
-                    S_b.cost = S[i].cost;
                 }
             }
         }
@@ -267,9 +268,9 @@ void SearchAlgorithm() {
             DirectPerturbation(eta_max, S[i].s, S[i].SizeG);
             DoubleNeighborhoodLocalSearch(S[i].s, S[i].SizeG, &S[i].cost);
             if (S[i].cost > S_b.cost) {
+                S_b.cost = S[i].cost;
                 for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
                 for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
-                S_b.cost = S[i].cost;
             }
         }
 
@@ -390,7 +391,7 @@ void RandomInitialSol(int s[], int SizeG[]) {
 void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost) {
     const double DELTA_THRESHOLD = 0.0001;  // Define a constant for comparison threshold
     int i, v, g, u;
-    int oldGroup, oldGroup1, t;
+    int oldGroup, oldGroup1, swap;
     int imp;
 
     // Initialize the partition array
@@ -402,7 +403,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
     // Initialize the delta_f value
     double delta_f = -99999.0;
 
-    do {
+    while (imp == 1){
         imp = 0;  // Reset improvement flag
 
         // First loop: Move individual elements to improve partition
@@ -453,20 +454,19 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                         OneMoveUpdateDeltaMatrix(u, oldGroup1, oldGroup);
 
                         // Swap the two nodes between groups
-                        t = s[v];
+                        swap = s[v];
                         s[v] = s[u];
-                        s[u] = t;
+                        s[u] = swap;
 
                         // Update total cost
                         objective += delta_f;
 
-                        // Mark as improved
                         imp = 1;
                     }
                 }
             }
         }
-    } while (imp == 1);  // Continue until no improvement is made
+    }
 
     // Update the partition array with the final assignments
     for (i = 0; i < N; i++) partition[i] = s[i];
@@ -948,16 +948,6 @@ void ClearDeltaMatrix() {
     }
 }
 
-void ClearDeltaMatrixDispersion() {
-	/* Resets the delta_f matrix */
-    for (int i = 0; i < N; ++i) {
-        // should this not be over N ?!
-        for (int j = 0; j < K; j++) {
-            Delta_Matrix[i][j] = INFINITY;
-        }
-    }
-}
-
 void BuildDeltaMatrix() {
 	/*  Builds the delta_f matrix and calculates the objective function value */
 
@@ -977,26 +967,6 @@ void BuildDeltaMatrix() {
         objective += Delta_Matrix[i][s[i]];
     }
     objective /= 2.0;
-}
-
-void BuildDeltaMatrixDispersion() {
-	/*  Builds the delta_f matrix and calculates the objective function value */
-
-	ClearDeltaMatrixDispersion();
-
-    int i, j;
-	// Update Delta_Matrix based on distances
-    for (int i = 0; i < N-1; i++) {
-        for (j = i+1; j < N; j++) {
-            Delta_Matrix[i][s[j]] = fmin(Distances[i][j], Delta_Matrix[i][s[j]]);
-        }
-    } 
-
-    // Calculate the objective function value
-    objective = INFINITY;
-    for (i = 0; i < N; i++) {
-        objective = fmin(Delta_Matrix[i][s[i]], objective);
-    }
 }
 
 void BuildGroupDiversityForCrossover() {
