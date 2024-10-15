@@ -29,7 +29,6 @@ Solution *S_D; //S_i
 Solution *O_D; //O_i in crossover
 
 //double neighboorhood local search
-extern int *s; // partition array for each v
 extern double objective;
 double *min_distance_per_cluster;
 int **min_distance_tuple;
@@ -69,7 +68,6 @@ void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tu
 void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void SearchAlgorithmDisperion(void);
 void InitialSolDispersion(Solution *Solution);
-void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]);
 void AssignMemoryDispersion();
@@ -461,12 +459,9 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
     int i, v, g, u;
     int imp;
 
-    // Initialize the partition array
-    for (i = 0; i < N; i++) s[i] = partition[i];
-
     // Initialize the delta_f value and tuple arrays
     double delta_f = -99999.0;
-    fill_arrays(s, min_distance_tuple, min_distance_per_cluster);
+    fill_arrays(partition, min_distance_tuple, min_distance_per_cluster);
 
     int g1, g2;
     double old_f1, old_f2;
@@ -477,18 +472,18 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
         for (v = 0; v < N; v++) {
             for (g = 0; g < K; g++) {
                 // Check if moving `v` to `group` is valid and beneficial
-                if ((s[v] != g) && (SizeGroup[s[v]] > LB[s[v]]) && (SizeGroup[g] < UB[g])) {
-                    g1 = s[v];
-                    old_f1 = min_distance_per_cluster[s[v]];
+                if ((partition[v] != g) && (SizeGroup[partition[v]] > LB[partition[v]]) && (SizeGroup[g] < UB[g])) {
+                    g1 = partition[v];
+                    old_f1 = min_distance_per_cluster[partition[v]];
                     old_f2 = min_distance_per_cluster[g];
-                    removing(v, s, min_distance_tuple, min_distance_per_cluster);  //remove 
+                    removing(v, partition, min_distance_tuple, min_distance_per_cluster);  //remove 
                     	// do not forget to carry out the adding to another cluster afterwards using the procedure above
-	                adding(v, g, s, min_distance_tuple, min_distance_per_cluster);
+	                adding(v, g, partition, min_distance_tuple, min_distance_per_cluster);
 
                     delta_f = min_distance_per_cluster[g] - old_f2 + min_distance_per_cluster[g1] - old_f1;
                     if (delta_f <= 0) {
                         // revert changes
-                        s[v] = g1;
+                        partition[v] = g1;
                         min_distance_per_cluster[g1] = old_f1;
                         min_distance_per_cluster[g] = old_f2;
                     } else {
@@ -504,21 +499,21 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
         for (v = 0; v < N-1; v++) {
             for (u = v + 1; u < N; u++) {
                 // Only swap if nodes are in different groups
-                if (s[v] != s[u]) {
-                    g1 = s[v];
-                    g2 = s[u];
-                    old_f1 = min_distance_per_cluster[s[v]];
-                    old_f2 = min_distance_per_cluster[s[u]];
+                if (partition[v] != partition[u]) {
+                    g1 = partition[v];
+                    g2 = partition[u];
+                    old_f1 = min_distance_per_cluster[partition[v]];
+                    old_f2 = min_distance_per_cluster[partition[u]];
 
                     tuple1[0] = min_distance_tuple[g1][0]; tuple1[1] = min_distance_tuple[g1][1]; // maybe quicker to just set tuple1 = min_distance_tuple[g1]? Does that work?
                     tuple2[0] = min_distance_tuple[g2][0]; tuple2[1] = min_distance_tuple[g2][1];
-                    swapping(u, v, s, min_distance_tuple, min_distance_per_cluster); 
+                    swapping(u, v, partition, min_distance_tuple, min_distance_per_cluster); 
 
                     delta_f = min_distance_per_cluster[g2] - old_f2 + min_distance_per_cluster[g1] - old_f1; // IMPORTANT: typo: g2 instead of g
                     if (delta_f <= 0) {
                         // revert changes
-                        s[v] = g1;
-                        s[u] = g2;
+                        partition[v] = g1;
+                        partition[u] = g2;
                         min_distance_per_cluster[g1] = old_f1;
                         min_distance_per_cluster[g2] = old_f2;
                         min_distance_tuple[g1][0] = tuple1[0]; min_distance_tuple[g1][1] = tuple1[1];
@@ -537,8 +532,7 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
     objective = evaluate_objective(min_distance_per_cluster);
 
     // Update the partition array with the final assignments
-    for (i = 0; i < N; i++) partition[i] = s[i];
-        *cost = objective;
+    *cost = objective;
 }
 
 
@@ -551,9 +545,9 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
     double objective_k, minDeltaValue, maxDeltaValue;
 
     // Initialize the partition and size groups
-    for (i = 0; i < N; i++) s[i] = partition[i];
+    for (i = 0; i < N; i++) partition[i] = partition[i];
     for (j = 0; j < K; j++) SizeG[j] = SizeGroup[j];
-    fill_arrays(s, min_distance_tuple, min_distance_per_cluster);
+    fill_arrays(partition, min_distance_tuple, min_distance_per_cluster);
 
 
     // Main loop for perturbation iterations
@@ -577,14 +571,14 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
             ind1 = min_distance_tuple[k][0];
             ind2 = min_distance_tuple[k][1];
             objective_k = min_distance_per_cluster[k];
-            removing(ind1, s, min_distance_tuple, min_distance_per_cluster);
+            removing(ind1, partition, min_distance_tuple, min_distance_per_cluster);
             minDeltaValue = min_distance_per_cluster[k];
             // restore changes simply from ind1 and objective_k:
             min_distance_tuple[k][0] = ind1;
             min_distance_tuple[k][1] = ind2;
             min_distance_per_cluster[k] = objective_k;
-            s[ind1] = k; // restore class membership
-            removing(ind2, s, min_distance_tuple, min_distance_per_cluster);
+            partition[ind1] = k; // restore class membership
+            removing(ind2, partition, min_distance_tuple, min_distance_per_cluster);
              if (min_distance_per_cluster[k] < minDeltaValue) {
                 minDeltaValue = min_distance_per_cluster[k];
                 minElement = ind2;
@@ -592,8 +586,8 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
                 min_distance_tuple[k][0] = ind1;
                 min_distance_tuple[k][1] = ind2;
                 min_distance_per_cluster[k] = objective_k;
-                s[ind2] = k; // restore class membership
-                removing(ind1, s, min_distance_tuple, min_distance_per_cluster);
+                partition[ind2] = k; // restore class membership
+                removing(ind1, partition, min_distance_tuple, min_distance_per_cluster);
                 minElement = ind1;
             }
 
@@ -637,7 +631,7 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
                 if (new_ind > -1) {
                     ind1 = min_distance_tuple[k][0];
                     ind2 = min_distance_tuple[k][1];
-                    adding(new_ind, k, s, min_distance_tuple, min_distance_per_cluster);
+                    adding(new_ind, k, partition, min_distance_tuple, min_distance_per_cluster);
                     if (min_distance_per_cluster[k] - objective_k > maxDeltaValue) {
                         maxDeltaValue = min_distance_per_cluster[k] - objective_k;
                         selectedElement = new_ind;
@@ -649,11 +643,11 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
                     // replace "min_distance_per_cluster[k] = objective_k;" by the if-else statement, see other IMPORTANT above
                     if (is_infinite) min_distance_per_cluster[k] = INFINITY;
                     else min_distance_per_cluster[k] = objective_k;
-                    s[new_ind] = -1; // remove new_ind from class
+                    partition[new_ind] = -1; // remove new_ind from class
                 }
             }
 
-            adding(selectedElement, k, s, min_distance_tuple, min_distance_per_cluster);  
+            adding(selectedElement, k, partition, min_distance_tuple, min_distance_per_cluster);  
             
             UnderLB[k] = 0;
             Rd[selectedGroup] = -1;
@@ -678,7 +672,7 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
                     ind1 = min_distance_tuple[k][0];
                     ind2 = min_distance_tuple[k][1];
                     objective_k = min_distance_per_cluster[k];
-                    adding(new_ind, k, s, min_distance_tuple, min_distance_per_cluster);
+                    adding(new_ind, k, partition, min_distance_tuple, min_distance_per_cluster);
                     if (min_distance_per_cluster[k] - objective_k > maxDeltaValue) {
                         minDeltaValue = min_distance_per_cluster[k] - objective_k;
                         selectedGroup = k;
@@ -687,16 +681,15 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
                     min_distance_tuple[k][0] = ind1;
                     min_distance_tuple[k][1] = ind2;
                     min_distance_per_cluster[k] = objective_k;
-                    s[new_ind] = -1; // remove new_ind from class
+                    partition[new_ind] = -1; // remove new_ind from class
                 }
             }
-            adding(new_ind, selectedGroup, s, min_distance_tuple, min_distance_per_cluster); 
+            adding(new_ind, selectedGroup, partition, min_distance_tuple, min_distance_per_cluster); 
 
             nn += 1;
         }
     }
 
-    for (i = 0; i < N; i++) partition[i] = s[i];
     for (j = 0; j < K; j++) SizeGroup[j] = SizeG[j];
 }
 
@@ -988,7 +981,6 @@ void AssignMemoryDispersion() {
 	distance matrices, diversity measures, and neighborhood exploration.
 	*/
     
-    s = (int*)malloc(N * sizeof(int));
     SizeG = (int*)malloc(K * sizeof(int));
     
     S_D = (Solution*)malloc(beta_max * sizeof(Solution));
@@ -1029,7 +1021,6 @@ void ReleaseMemoryDispersion() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
     
-    free(s); s = NULL;
     free(SizeG); SizeG = NULL;
 
     free(CS.s); CS.s = NULL;

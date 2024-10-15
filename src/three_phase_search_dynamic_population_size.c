@@ -394,7 +394,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
     int imp;
 
     // Build the delta_f matrix for cost changes
-    BuildDeltaMatrix();
+    BuildDeltaMatrix(partition);
 
     // Initialize the delta_f value
     double delta_f = -99999.0;
@@ -515,9 +515,8 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
     int i, j, k, L, number, minDeltaValue, minElement;
 
     // Initialize the partition and size groups
-    for (i = 0; i < N; i++) s[i] = partition[i];
     for (j = 0; j < K; j++) SizeG[j] = SizeGroup[j];
-    BuildDeltaMatrix();
+    BuildDeltaMatrix(partition);
 
     // Main loop for perturbation iterations
     for (L = 0; L < eta_max; L++) {
@@ -537,7 +536,7 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
             minDeltaValue = 99999999;
             minElement = 0;
             for (i = 0; i < N; i++) {
-                if (s[i] == k) {
+                if (partition[i] == k) {
                     if (Delta_Matrix[i][k] < minDeltaValue) {
                         minDeltaValue = Delta_Matrix[i][k];
                         minElement = i;
@@ -559,8 +558,8 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
         // Rebuild the Delta matrix and average connections after removal
         for (i = 0; i < K; i++) {
             for (j = 0; j < K; j++) {
-                Delta_Matrix[Rd[i]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] - Distances[Rd[i]][Rd[j]];
-                Avg[s[Rd[i]]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] / SizeG[s[Rd[j]]];
+                Delta_Matrix[Rd[i]][partition[Rd[j]]] = Delta_Matrix[Rd[i]][partition[Rd[j]]] - Distances[Rd[i]][Rd[j]];
+                Avg[partition[Rd[i]]][partition[Rd[j]]] = Delta_Matrix[Rd[i]][partition[Rd[j]]] / SizeG[partition[Rd[j]]];
             }
         }        
 		
@@ -589,15 +588,15 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
             for (k = 0; k < K; k++) {
                 if (Rd[k] != -1) {
                     Delta_Matrix[Rd[k]][i] += Distances[Rd[k]][Rd[selectedGroup]];
-                    Avg[s[Rd[k]]][i] = Delta_Matrix[Rd[k]][i] / SizeG[i];
+                    Avg[partition[Rd[k]]][i] = Delta_Matrix[Rd[k]][i] / SizeG[i];
                 }
             }
 
             // Clear old connections for the moved element and finalize the move
             for (k = 0; k < K; k++) {
-                Avg[s[Rd[selectedGroup]]][k] = 0.0;
+                Avg[partition[Rd[selectedGroup]]][k] = 0.0;
             }
-            s[Rd[selectedGroup]] = i;
+            partition[Rd[selectedGroup]] = i;
             UnderLB[i] = 0;
             Rd[selectedGroup] = -1;
             nn++;
@@ -624,13 +623,13 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
                 for (k = 0; k < K; k++) {
                     if (Rd[k] != -1) {
                         Delta_Matrix[Rd[k]][groupWithMaxAvgCon] += Distances[Rd[k]][Rd[selectedGroup]];
-                        Avg[s[Rd[k]]][groupWithMaxAvgCon] = Delta_Matrix[Rd[k]][groupWithMaxAvgCon] / SizeG[groupWithMaxAvgCon];
+                        Avg[partition[Rd[k]]][groupWithMaxAvgCon] = Delta_Matrix[Rd[k]][groupWithMaxAvgCon] / SizeG[groupWithMaxAvgCon];
                     }
                 }
                 for (k = 0; k < K; k++) {
-                	Avg[s[Rd[selectedGroup]]][k] = 0.0;
+                	Avg[partition[Rd[selectedGroup]]][k] = 0.0;
                 }
-                s[Rd[selectedGroup]] = groupWithMaxAvgCon;
+                partition[Rd[selectedGroup]] = groupWithMaxAvgCon;
 				Rd[selectedGroup] = -1;
 				nn += 1;
 			}
@@ -640,10 +639,9 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
 				}
             }
         }
-        BuildDeltaMatrix();
+        BuildDeltaMatrix(partition);
     }
 
-    for (i = 0; i < N; i++) partition[i] = s[i];
     for (j = 0; j < K; j++) SizeGroup[j] = SizeG[j];
 }
 
@@ -734,13 +732,13 @@ void Crossover(int partition1[], int partition2[], int childSolution[], int scSi
     for (i = 0; i < N; i++) {
         p1[i] = partition1[i];
     }
-    BuildDeltaMatrix();
+    BuildDeltaMatrix(p1);
     for (i = 0; i < N; i++) {
         for (j = 0; j < K; j++) {
             Delta_Matrix_p1[i][j] = Delta_Matrix[i][j];
         }
     }
-    BuildGroupDiversityForCrossover();
+    BuildGroupDiversityForCrossover(p1);
     for (i = 0; i < K; i++) {
         groupDiversity_p1[i] = groupDiversity[i];
     }
@@ -749,13 +747,13 @@ void Crossover(int partition1[], int partition2[], int childSolution[], int scSi
     for (i = 0; i < N; i++) {
         p2[i] = partition2[i];
     }
-    BuildDeltaMatrix();
+    BuildDeltaMatrix(p2);
     for (i = 0; i < N; i++) {
         for (j = 0; j < K; j++) {
             Delta_Matrix_p2[i][j] = Delta_Matrix[i][j];
         }
     }
-    BuildGroupDiversityForCrossover();
+    BuildGroupDiversityForCrossover(p2);
     for (i = 0; i < K; i++) {
         groupDiversity_p2[i] = groupDiversity[i];
     }
@@ -936,7 +934,7 @@ void ClearDeltaMatrix() {
     }
 }
 
-void BuildDeltaMatrix() {
+void BuildDeltaMatrix(int partition[]) {
 	/*  Builds the delta_f matrix and calculates the objective function value */
 
 	ClearDeltaMatrix();
@@ -945,19 +943,19 @@ void BuildDeltaMatrix() {
 	// Update Delta_Matrix based on distances
     for (int i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            Delta_Matrix[i][s[j]] += Distances[i][j];
+            Delta_Matrix[i][partition[j]] += Distances[i][j];
         }
     }
 
     // Calculate the objective function value
     objective = 0.0;
     for (i = 0; i < N; i++) {
-        objective += Delta_Matrix[i][s[i]];
+        objective += Delta_Matrix[i][partition[i]];
     }
     objective /= 2.0;
 }
 
-void BuildGroupDiversityForCrossover() {
+void BuildGroupDiversityForCrossover(int partition[]) {
 	/*  Builds group diversity values for crossover */
 	
     // Initialize group diversity values to zero
@@ -965,9 +963,9 @@ void BuildGroupDiversityForCrossover() {
 	
 	// Compute group diversity based on distances
     for (int i = 0; i < N; i++) {
-        int group_i = s[i];
+        int group_i = partition[i];
         for (int j = 0; j < N; j++) {
-            if (group_i == s[j]) {
+            if (group_i == partition[j]) {
                 groupDiversity[group_i] += Distances[i][j];
             }
         }
@@ -989,8 +987,7 @@ void AssignMemory() {
 	for the algorithm's execution. This includes structures for population management, 
 	distance matrices, diversity measures, and neighborhood exploration.
 	*/
-    
-    s = (int*)malloc(N * sizeof(int));
+
     SizeG = (int*)malloc(K * sizeof(int));
     
     S = (Solution*)malloc(beta_max * sizeof(Solution));
@@ -1042,7 +1039,6 @@ void ReleaseMemory() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
     
-    free(s); s = NULL;
     free(SizeG); SizeG = NULL;
 
 
