@@ -28,7 +28,6 @@ Solution *S; //S_i
 Solution *O; //O_i in crossover
 
 //double neighboorhood local search
-int *s; // partition array for each v
 double objective;
 
 // Matrix M
@@ -394,9 +393,6 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
     int oldGroup, oldGroup1, swap;
     int imp;
 
-    // Initialize the partition array
-    for (i = 0; i < N; i++) s[i] = partition[i];
-
     // Build the delta_f matrix for cost changes
     BuildDeltaMatrix();
 
@@ -410,11 +406,12 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
         for (v = 0; v < N; v++) {
             for (g = 0; g < K; g++) {
                 // Check if moving `v` to `group` is valid and beneficial
-                if ((s[v] != g) && (SizeGroup[s[v]] > LB[s[v]]) && (SizeGroup[g] < UB[g])) {
+                if ((partition[v] != g) && (SizeGroup[partition[v]] > LB[partition[v]]) 
+                     && (SizeGroup[g] < UB[g])) {
                     delta_f = Delta_Matrix[v][g] - Delta_Matrix[v][s[v]];
 
                     if (delta_f > DELTA_THRESHOLD) {
-                        oldGroup = s[v];
+                        oldGroup = partition[v];
 
                         // Update delta_f matrix for the move
                         OneMoveUpdateDeltaMatrix(v, oldGroup, g);
@@ -424,7 +421,7 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
                         SizeGroup[g] += 1;
 
                         // Assign v to new group
-                        s[v] = g;
+                        partition[v] = g;
 
                         // Update total cost
                         objective += delta_f;
@@ -440,23 +437,23 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
         for (v = 0; v < N; v++) {
             for (u = v + 1; u < N; u++) {
                 // Only swap if nodes are in different groups
-                if (s[v] != s[u]) {
-                    delta_f = (Delta_Matrix[v][s[u]] - Delta_Matrix[v][s[v]])
-                          + (Delta_Matrix[u][s[v]] - Delta_Matrix[u][s[u]])
+                if (partition[v] != s[u]) {
+                    delta_f = (Delta_Matrix[v][partition[u]] - Delta_Matrix[v][partition[v]])
+                          + (Delta_Matrix[u][partition[v]] - Delta_Matrix[u][partition[u]])
                           - DistancesT[v][u];
 
                     if (delta_f > DELTA_THRESHOLD) {
-                        oldGroup = s[v];
-                        oldGroup1 = s[u];
+                        oldGroup = partition[v];
+                        oldGroup1 = partition[u];
 
                         // Update delta_f matrix M for the swap
                         OneMoveUpdateDeltaMatrix(v, oldGroup, oldGroup1);
                         OneMoveUpdateDeltaMatrix(u, oldGroup1, oldGroup);
 
                         // Swap the two nodes between groups
-                        swap = s[v];
-                        s[v] = s[u];
-                        s[u] = swap;
+                        swap = partition[v];
+                        partition[v] = partition[u];
+                        partition[u] = swap;
 
                         // Update total cost
                         objective += delta_f;
@@ -469,7 +466,6 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
     }
 
     // Update the partition array with the final assignments
-    for (i = 0; i < N; i++) partition[i] = s[i];
     *cost = objective;
 }
 
@@ -480,24 +476,20 @@ void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]) {
     int v, g, x, y;
     int oldGroup, swap;
 
-    for (int i = 0; i < N; i++) {
-        s[i] = partition[i];
-    }
-
     int count = 0;
     int NumberNeighbors = N * (N - 1) / 2 + N * K;
-     while (count < theta) {
+    while (count < theta) {
         perturb_type = random_int(NumberNeighbors);
 
         if (perturb_type  < N * K) {  // Type 1: Random (element, group) perturbation
             v = random_int(N); // Randomly choose an element v
             g = random_int(K); // Randomly choose a group g
 
-             if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
-                oldGroup = s[v];
+             if (partition[v] != g && SizeGroup[partition[v]] > LB[partition[v]] && SizeGroup[g] < UB[g]) {
+                oldGroup = partition[v];
                 SizeGroup[oldGroup]--;
                 SizeGroup[g]++;
-                s[v] = g;
+                partition[v] = g;
                 count++;
             }
         } 
@@ -506,17 +498,13 @@ void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]) {
             y = random_int(N); // Randomly choose element y
 
             // Apply perturbation if elements are in different groups
-            if (s[x] != s[y] && x != y) {
-                swap = s[x];
-                s[x] = s[y];
-                s[y] = swap;
+            if (partition[x] != partition[y] && x != y) {
+                swap = partition[x];
+                partition[x] = partition[y];
+                partition[y] = swap;
                 count++;
             }
         }
-    }
-
-    for (int i = 0; i < N; i++) {
-        partition[i] = s[i];
     }
 }
 
