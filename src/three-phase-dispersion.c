@@ -28,17 +28,6 @@ extern Solution CS;
 Solution *S_D; //S_i
 Solution *O_D; //O_i in crossover
 
-
-typedef struct {
-    int type;
-    int v;
-    int g;
-    int x;
-    int y;
-} Neighborhood;
-
-Neighborhood *Neighbors;
-
 //double neighboorhood local search
 extern int *s; // partition array for each v
 extern double objective;
@@ -80,12 +69,10 @@ void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tu
 void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void SearchAlgorithmDisperion(void);
 void InitialSolDispersion(Solution *Solution);
-void UndirectedPerturbationDispersion(int L, int partition[], int SizeGroup[]);
 void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]);
 void AssignMemoryDispersion();
-void BuildNeighbors();
 void ReleaseMemoryDispersion();
 
 /* TPSPD for Anticlustering Based on a Distance matrix
@@ -129,7 +116,7 @@ void three_phase_search_dispersion(
                       int *number_of_iterations,
                       int *clusters,
                       int *upper_bound, 
-                      int *lower_bound, 
+                      int *lower_bound,
 											int *Beta_max, 
 											int *elapsed_time,
 											double *Theta_max,
@@ -219,9 +206,6 @@ void three_phase_search_dispersion(
     return;
   }
   
-
-  BuildNeighbors();
-  
   SearchAlgorithmDisperion();
   
   //save S_b -> solution with result
@@ -254,30 +238,6 @@ void three_phase_search_dispersion(
   free(tuple2);
   
   ReleaseMemoryDispersion();
-}
-
-void BuildNeighbors() {
-	/* Initializes the neighbor structure for optimization */
-	int i, j;
-	int count = 0;
-	
-    // Type 1 neighbors: (i, j) where each element i can be in group j
-	for (i = 0; i < N; i++)
-		for (j = 0; j < K; j++) {
-			Neighbors[count].type = 1;
-			Neighbors[count].v = i;
-			Neighbors[count].g = j;
-			count++;
-		}
-    // Type 2 neighbors: (i, j) where each pair of elements (i, j) are neighbors    
-	for (i = 0; i < N; i++)
-		for (j = i + 1; j < N; j++) {
-			Neighbors[count].type = 2;
-			Neighbors[count].x = i;
-			Neighbors[count].y = j;
-			count++;
-		}
-		
 }
 
 void initialize_arrays(int **s_min_distance_tuple, double *s_min_distance_per_cluster) {
@@ -427,7 +387,7 @@ void SearchAlgorithmDisperion() {
         }
         // Strong Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
-           UndirectedPerturbationDispersion(eta, S_D[i].s, S_D[i].SizeG);
+           UndirectedPerturbation(eta, S_D[i].s, S_D[i].SizeG);
            DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].cost);
             if (S_D[i].cost > S_b.cost) {
                 for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
@@ -581,56 +541,6 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
         *cost = objective;
 }
 
-void UndirectedPerturbationDispersion(int L, int partition[], int SizeGroup[]) {
-    /* Algorithm 4: Undirected Perturbation. Applies a strong perturbation to the partition */
-
-    int current_index;
-    int v, g, x, y;
-    int oldGroup, swap;
-
-    for (int i = 0; i < N; i++) {
-        s[i] = partition[i];
-    }
-
-    theta = L; 
-    int count = 0;
-    int NumberNeighbors = N * (N - 1) / 2 + N * K;
-
-    // Perturbation loop
-    while (count < theta) {
-        current_index = random_int(NumberNeighbors);
-
-        if (Neighbors[current_index].type == 1) { // Type 1 neighbor: (element, group)
-            v = Neighbors[current_index].v;
-            g = Neighbors[current_index].g;
-
-            // Apply perturbation if constraints are met
-            if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
-                oldGroup = s[v];
-                SizeGroup[oldGroup]--;
-                SizeGroup[g]++;
-                s[v] = g;
-                count++;
-            }
-        } else if (Neighbors[current_index].type == 2) { // Type 2 neighbor: (element x, element y)
-            x = Neighbors[current_index].x;
-            y = Neighbors[current_index].y;
-
-            // Apply perturbation if elements are in different groups
-            if (s[x] != s[y]) {
-                swap = s[x];
-                s[x] = s[y];
-                s[y] = swap;
-                count++;
-            }
-        }
-    }
-
-    // Copy the perturbed partition back to the original partition
-    for (int i = 0; i < N; i++) {
-        partition[i] = s[i];
-    }
-}
 
 void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
@@ -1098,8 +1008,6 @@ void AssignMemoryDispersion() {
     CS.SizeG = (int*)malloc(K * sizeof(int));
     S_b.SizeG = (int*)malloc(K * sizeof(int));
     
-    Neighbors = (Neighborhood*)malloc((N * (N - 1) / 2 + N * K) * sizeof(Neighborhood));
-    
     Rd = (int*)malloc(K * sizeof(int));
     for (i = 0; i < K; i++) Rd[i] = 0;
     UnderLB = (int*)malloc(K * sizeof(int));
@@ -1145,7 +1053,6 @@ void ReleaseMemoryDispersion() {
        
     free(LB); LB = NULL;
     free(UB); UB = NULL;
-    free(Neighbors); Neighbors = NULL;
 
     free(Rd); Rd = NULL;
     free(UnderLB); UnderLB = NULL;
