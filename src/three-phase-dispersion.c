@@ -469,7 +469,7 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
     fill_arrays(s, min_distance_tuple, min_distance_per_cluster);
 
     int g1, g2;
-    double old_f1, old_f2;
+    double old_f1, old_f2, delta_min;
     do { 
         imp = 0;  // Reset improvement flag
 
@@ -485,8 +485,13 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
                     	// do not forget to carry out the adding to another cluster afterwards using the procedure above
 	                adding(v, g, s, min_distance_tuple, min_distance_per_cluster);
 
+                     // accept changes only if the smaller of the two does not get down-graded (possibly decreasing the global minimum)
+                    if (old_f1 < old_f2) delta_min = min_distance_per_cluster[g1] - old_f1;
+                    else if (old_f1 > old_f2) delta_min = min_distance_per_cluster[g] - old_f2;
+                    else delta_min = fmin(min_distance_per_cluster[g1] - old_f1,min_distance_per_cluster[g] - old_f2);
+
                     delta_f = min_distance_per_cluster[g] - old_f2 + min_distance_per_cluster[g1] - old_f1;
-                    if (delta_f <= 0) {
+                    if (delta_f <= 0 || delta_min < 0) {
                         // revert changes
                         s[v] = g1;
                         min_distance_per_cluster[g1] = old_f1;
@@ -514,8 +519,13 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
                     tuple2[0] = min_distance_tuple[g2][0]; tuple2[1] = min_distance_tuple[g2][1];
                     swapping(u, v, s, min_distance_tuple, min_distance_per_cluster); 
 
+                    // accept changes only if the smaller of the two does not get down-graded (possibly decreasing the global minimum)
+                    if (old_f1 < old_f2) delta_min = min_distance_per_cluster[g1] - old_f1;
+                    else if (old_f1 > old_f2) delta_min = min_distance_per_cluster[g2] - old_f2;
+                    else delta_min = fmin(min_distance_per_cluster[g1] - old_f1,min_distance_per_cluster[g2] - old_f2);
+
                     delta_f = min_distance_per_cluster[g2] - old_f2 + min_distance_per_cluster[g1] - old_f1; // IMPORTANT: typo: g2 instead of g
-                    if (delta_f <= 0) {
+                    if (delta_f <= 0 || delta_min < 0) {
                         // revert changes
                         s[v] = g1;
                         s[u] = g2;
