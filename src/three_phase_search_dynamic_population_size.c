@@ -28,14 +28,12 @@ Solution *S; //S_i
 Solution *O; //O_i in crossover
 
 //double neighboorhood local search
-int *s; // partition array for each v
 double objective;
 
 // Matrix M
 double **Delta_Matrix;  // incremental matrix 
 double **Delta_Matrix_p1;
 double **Delta_Matrix_p2;
-double *groupDiversity;
 double *groupDiversity_p1;
 double *groupDiversity_p2;
 int *SelectEle;
@@ -387,21 +385,18 @@ void RandomInitialSol(int s[], int SizeG[]) {
 }
 
 
-void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost) {
+void DoubleNeighborhoodLocalSearch(int s[], int SizeGroup[], double* cost) {
     const double DELTA_THRESHOLD = 0.0001;  // Define a constant for comparison threshold
-    int i, v, g, u;
+    int v, g, u;
     int oldGroup, oldGroup1, t;
-    int imp;
-
-    // Initialize the partition array
-    for (i = 0; i < N; i++) s[i] = partition[i];
 
     // Build the delta_f matrix for cost changes
-    BuildDeltaMatrix();
+    BuildDeltaMatrix(s);
 
     // Initialize the delta_f value
     double delta_f = -99999.0;
 
+    int imp;
     do {
         imp = 0;  // Reset improvement flag
 
@@ -469,20 +464,15 @@ void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cos
     } while (imp == 1);  // Continue until no improvement is made
 
     // Update the partition array with the final assignments
-    for (i = 0; i < N; i++) partition[i] = s[i];
     *cost = objective;
 }
 
-void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]) {
+void UndirectedPerturbation(int theta, int s[], int SizeGroup[]) {
     /* Algorithm 4: Undirected Perturbation. Applies a strong perturbation to the partition */
 
     int perturb_type;
     int v, g, x, y;
     int oldGroup, swap;
-
-    for (int i = 0; i < N; i++) {
-        s[i] = partition[i];
-    }
 
     int count = 0;
     int NumberNeighbors = N * (N - 1) / 2 + N * K;
@@ -514,22 +504,17 @@ void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]) {
             }
         }
     }
-
-    for (int i = 0; i < N; i++) {
-        partition[i] = s[i];
-    }
 }
 
-void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
+void DirectPerturbation(int eta_max, int s[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
 	Iteratively refines partitions to balance group sizes and minimize costs */
 
     int i, j, k, L, number, minDeltaValue, minElement;
 
     // Initialize the partition and size groups
-    for (i = 0; i < N; i++) s[i] = partition[i];
     for (j = 0; j < K; j++) SizeG[j] = SizeGroup[j];
-    BuildDeltaMatrix();
+    BuildDeltaMatrix(s);
 
     // Main loop for perturbation iterations
     for (L = 0; L < eta_max; L++) {
@@ -652,10 +637,9 @@ void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]) {
 				}
             }
         }
-        BuildDeltaMatrix();
+        BuildDeltaMatrix(s);
     }
 
-    for (i = 0; i < N; i++) partition[i] = s[i];
     for (j = 0; j < K; j++) SizeGroup[j] = SizeG[j];
 }
 
@@ -744,35 +728,27 @@ void Crossover(int partition1[], int partition2[], int childSolution[], int scSi
 
     // Initialize p1 with partition1
     for (i = 0; i < N; i++) {
-        s[i] = partition1[i];
         p1[i] = partition1[i];
     }
-    BuildDeltaMatrix();
+    BuildDeltaMatrix(p1);
     for (i = 0; i < N; i++) {
         for (j = 0; j < K; j++) {
             Delta_Matrix_p1[i][j] = Delta_Matrix[i][j];
         }
     }
-    BuildGroupDiversityForCrossover();
-    for (i = 0; i < K; i++) {
-        groupDiversity_p1[i] = groupDiversity[i];
-    }
+    BuildGroupDiversityForCrossover(p1, groupDiversity_p1);
 
     // Initialize p2 with partition2
     for (i = 0; i < N; i++) {
-        s[i] = partition2[i];
         p2[i] = partition2[i];
     }
-    BuildDeltaMatrix();
+    BuildDeltaMatrix(p2);
     for (i = 0; i < N; i++) {
         for (j = 0; j < K; j++) {
             Delta_Matrix_p2[i][j] = Delta_Matrix[i][j];
         }
     }
-    BuildGroupDiversityForCrossover();
-    for (i = 0; i < K; i++) {
-        groupDiversity_p2[i] = groupDiversity[i];
-    }
+    BuildGroupDiversityForCrossover(p2, groupDiversity_p2);
 
     int targetGroup = -1;
     // Main crossover process
@@ -950,17 +926,7 @@ void ClearDeltaMatrix() {
     }
 }
 
-void ClearDeltaMatrixDispersion() {
-	/* Resets the delta_f matrix */
-    for (int i = 0; i < N; ++i) {
-        // should this not be over N ?!
-        for (int j = 0; j < K; j++) {
-            Delta_Matrix[i][j] = INFINITY;
-        }
-    }
-}
-
-void BuildDeltaMatrix() {
+void BuildDeltaMatrix(int partition[]) {
 	/*  Builds the delta_f matrix and calculates the objective function value */
 
 	ClearDeltaMatrix();
@@ -969,39 +935,19 @@ void BuildDeltaMatrix() {
 	// Update Delta_Matrix based on distances
     for (int i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            Delta_Matrix[i][s[j]] += Distances[i][j];
+            Delta_Matrix[i][partition[j]] += Distances[i][j];
         }
     }
 
     // Calculate the objective function value
     objective = 0.0;
     for (i = 0; i < N; i++) {
-        objective += Delta_Matrix[i][s[i]];
+        objective += Delta_Matrix[i][partition[i]];
     }
     objective /= 2.0;
 }
 
-void BuildDeltaMatrixDispersion() {
-	/*  Builds the delta_f matrix and calculates the objective function value */
-
-	ClearDeltaMatrixDispersion();
-
-    int i, j;
-	// Update Delta_Matrix based on distances
-    for (int i = 0; i < N-1; i++) {
-        for (j = i+1; j < N; j++) {
-            Delta_Matrix[i][s[j]] = fmin(Distances[i][j], Delta_Matrix[i][s[j]]);
-        }
-    } 
-
-    // Calculate the objective function value
-    objective = INFINITY;
-    for (i = 0; i < N; i++) {
-        objective = fmin(Delta_Matrix[i][s[i]], objective);
-    }
-}
-
-void BuildGroupDiversityForCrossover() {
+void BuildGroupDiversityForCrossover(int partition[], double groupDiversity[]) {
 	/*  Builds group diversity values for crossover */
 	
     // Initialize group diversity values to zero
@@ -1009,9 +955,9 @@ void BuildGroupDiversityForCrossover() {
 	
 	// Compute group diversity based on distances
     for (int i = 0; i < N; i++) {
-        int group_i = s[i];
+        int group_i = partition[i];
         for (int j = 0; j < N; j++) {
-            if (group_i == s[j]) {
+            if (group_i == partition[j]) {
                 groupDiversity[group_i] += Distances[i][j];
             }
         }
@@ -1034,7 +980,6 @@ void AssignMemory() {
 	distance matrices, diversity measures, and neighborhood exploration.
 	*/
     
-    s = (int*)malloc(N * sizeof(int));
     SizeG = (int*)malloc(K * sizeof(int));
     
     S = (Solution*)malloc(beta_max * sizeof(Solution));
@@ -1053,7 +998,6 @@ void AssignMemory() {
     for (i = 0; i < N; i++) Delta_Matrix_p1[i] = (double*)malloc(K * sizeof(double));
     Delta_Matrix_p2 = (double**)malloc(N * sizeof(double*));
     for (i = 0; i < N; i++) Delta_Matrix_p2[i] = (double*)malloc(K * sizeof(double));
-    groupDiversity = (double*)malloc(K * sizeof(double));
     groupDiversity_p1 = (double*)malloc(K * sizeof(double));
     groupDiversity_p2 = (double*)malloc(K * sizeof(double));
     
@@ -1086,7 +1030,6 @@ void ReleaseMemory() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
     
-    free(s); s = NULL;
     free(SizeG); SizeG = NULL;
 
 
@@ -1115,7 +1058,6 @@ void ReleaseMemory() {
     free(Delta_Matrix); Delta_Matrix = NULL;
     free(Delta_Matrix_p1); Delta_Matrix_p1 = NULL;
     free(Delta_Matrix_p2); Delta_Matrix_p2 = NULL;
-    free(groupDiversity); groupDiversity = NULL;
     free(groupDiversity_p1); groupDiversity_p1 = NULL;
     free(groupDiversity_p2); groupDiversity_p2 = NULL;
     free(Avg); Avg = NULL;

@@ -29,7 +29,6 @@ Solution *S_D; //S_i
 Solution *O_D; //O_i in crossover
 
 //double neighboorhood local search
-extern int *s; // partition array for each v
 extern double objective;
 double *min_distance_per_cluster;
 int **min_distance_tuple;
@@ -66,12 +65,11 @@ double evaluate_objective(double *s_min_distance_per_cluster);
 void fill_arrays(int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void initialize_arrays(int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
-void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
+void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* cost);
 void SearchAlgorithmDisperion(void);
 void InitialSolDispersion(Solution *Solution);
-void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
-void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]);
+void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]);
 void AssignMemoryDispersion();
 void ReleaseMemoryDispersion();
 
@@ -456,13 +454,10 @@ void InitialSolDispersion(Solution *solution) {
     DoubleNeighborhoodLocalSearchDispersion(solution->s, solution->SizeG, &(solution->cost));
 }
 
-void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost) {
+void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* cost) {
 
-    int i, v, g, u;
+    int v, g, u;
     int imp;
-
-    // Initialize the partition array
-    for (i = 0; i < N; i++) s[i] = partition[i];
 
     // Initialize the delta_f value and tuple arrays
     double delta_f = -99999.0;
@@ -545,14 +540,12 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
     
     // Before writing objective to *cost, first update this value!
     objective = evaluate_objective(min_distance_per_cluster);
-
-    // Update the partition array with the final assignments
-    for (i = 0; i < N; i++) partition[i] = s[i];
-        *cost = objective;
+    
+    *cost = objective;
 }
 
 
-void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]) {
+void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
 	Iteratively refines partitions to balance group sizes and minimize costs */
 
@@ -560,8 +553,6 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
     int new_ind, ind1, ind2, selectedElement;
     double objective_k, minDeltaValue, maxDeltaValue;
 
-    // Initialize the partition and size groups
-    for (i = 0; i < N; i++) s[i] = partition[i];
     for (j = 0; j < K; j++) SizeG[j] = SizeGroup[j];
     fill_arrays(s, min_distance_tuple, min_distance_per_cluster);
 
@@ -706,7 +697,6 @@ void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[])
         }
     }
 
-    for (i = 0; i < N; i++) partition[i] = s[i];
     for (j = 0; j < K; j++) SizeGroup[j] = SizeG[j];
 }
 
@@ -998,7 +988,6 @@ void AssignMemoryDispersion() {
 	distance matrices, diversity measures, and neighborhood exploration.
 	*/
     
-    s = (int*)malloc(N * sizeof(int));
     SizeG = (int*)malloc(K * sizeof(int));
     
     S_D = (Solution*)malloc(beta_max * sizeof(Solution));
@@ -1039,7 +1028,6 @@ void ReleaseMemoryDispersion() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
     
-    free(s); s = NULL;
     free(SizeG); SizeG = NULL;
 
     free(CS.s); CS.s = NULL;
@@ -1049,7 +1037,7 @@ void ReleaseMemoryDispersion() {
     
    // Rprintf("relesee dispersion Until now runs trhough.");
     // IMPORTANT: releasing S_D and O_D like for TPSDP leads to error!
-    int i;
+    // int i;
     //for (i = 0; i < beta_max; i++) {
       //  free(S_D[i].s); S_D[i].s = NULL;
        // free(S_D[i].SizeG); S_D[i].SizeG = NULL;
