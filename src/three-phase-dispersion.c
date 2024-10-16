@@ -23,12 +23,12 @@ extern int eta_max;
 // main processure
 extern int maxNumberIterations;
 extern double start_time, Time_limit;
-extern Solution S_b; //best solution
+extern Solution S_best; //best solution
 Solution *S_D; //S_i
 Solution *O_D; //O_i in crossover
 
 //double neighboorhood local search
-extern double objective;
+extern double f_objective;
 double *min_distance_per_cluster;
 int **min_distance_tuple;
 int* tuple1;
@@ -43,7 +43,7 @@ extern int *vectorElement;
 extern int *groupElement;
 extern int *SelectGroup;
 extern int *SelectEle;
-extern int *SelectEleTemp;
+extern int *tmpEle;
 extern int *s1;
 extern int *s2;
 extern int *LBGroup;
@@ -61,7 +61,7 @@ double evaluate_objective(double *s_min_distance_per_cluster);
 void fill_arrays(int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void initialize_arrays(int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
-void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* cost);
+void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* objective);
 void SearchAlgorithmDisperion(void);
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 void DirectPerturbationDispersion(int eta_max, int s[], int SizeG[]);
@@ -94,7 +94,7 @@ void ReleaseMemoryDispersion();
  * param *Alpha: Parameter for weitghing the discrimitation of a slighlty worse local optiomal child solution
  *               in Yang et al. set to 0.05 (might differ due to different implemetnation of calculation).
  * param *result: Calculated assignment of elements to clusters. Emptz vector.
- * param *cost: Value of objective function.
+ * param *objective: Value of objective function.
  * param *mem_error: This is passed with value 0 and only receives the value 1 
  *       if a memory error occurs when executing this function. The caller needs
  *       to test if this value is 1 after execution.
@@ -201,11 +201,11 @@ void three_phase_search_dispersion(
   
   SearchAlgorithmDisperion();
   
-  //save S_b -> solution with result
+  //save S_best -> solution with result
   for (int i = 0; i < N; i++){
-    result[i] = S_b.s[i];
+    result[i] = S_best.s[i];
   }
-  *score = S_b.cost;
+  *score = S_best.objective;
   
   // Remember to free the allocated memory after use
   for (int i = 0; i < K; i++){
@@ -352,7 +352,7 @@ void SearchAlgorithmDisperion() {
     //important! for windows and linux there is a differnt definition of this time
     //on windows its the wall time, on linux the CPU time
     clock_t start_time = clock();
-    S_b.cost = -1;  //dispersion should be maximized
+    S_best.objective = -1;  //dispersion should be maximized
     
     // Initial population generation
     int i, j, k;
@@ -360,13 +360,13 @@ void SearchAlgorithmDisperion() {
 
         /* Algorithm 2: initializes a solution S_D[i] */
         RandomInitialSol(S_D[i].s, S_D[i].SizeG);
-        DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &(S_D[i].cost));
+        DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &(S_D[i].objective));
 
-        /* Update the best solution S_b if necessary */
-        if (S_D[i].cost > S_b.cost) {
-            for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
-            for (k = 0; k < K; k++) S_b.SizeG[k] = S_D[i].SizeG[k];
-            S_b.cost = S_D[i].cost;
+        /* Update the best solution S_best if necessary */
+        if (S_best.objective < S_D[i].objective) {
+            for (j = 0; j < N; j++) S_best.s[j] = S_D[i].s[j];
+            for (k = 0; k < K; k++) S_best.SizeG[k] = S_D[i].SizeG[k];
+            S_best.objective = S_D[i].objective;
         }
     }
  
@@ -376,17 +376,17 @@ void SearchAlgorithmDisperion() {
         for (i = 0; i < beta_max; i++) {
             for (j = 0; j < N; j++) O_D[i].s[j] = S_D[i].s[j];
             for (k = 0; k < K; k++) O_D[i].SizeG[k] = S_D[i].SizeG[k];
-            O_D[i].cost = S_D[i].cost;
+            O_D[i].objective = S_D[i].objective;
         }
         // Strong Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
             UndirectedPerturbation(eta, S_D[i].s, S_D[i].SizeG);
-            DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].cost);
+            DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].objective);
         
-            if (S_D[i].cost > S_b.cost) {
-                for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
-                for (k = 0; k < K; k++) S_b.SizeG[k] = S_D[i].SizeG[k];
-                S_b.cost = S_D[i].cost;
+            if (S_best.objective < S_D[i].objective) {
+                for (j = 0; j < N; j++) S_best.s[j] = S_D[i].s[j];
+                for (k = 0; k < K; k++) S_best.SizeG[k] = S_D[i].SizeG[k];
+                S_best.objective = S_D[i].objective;
             }
         }
 
@@ -399,23 +399,23 @@ void SearchAlgorithmDisperion() {
                 }
 
                 CrossoverDispersion(S_D[i].s, S_D[pickedSolution].s, O_D[i].s, O_D[i].SizeG);
-                DoubleNeighborhoodLocalSearchDispersion(O_D[i].s, O_D[i].SizeG, &O_D[i].cost);
+                DoubleNeighborhoodLocalSearchDispersion(O_D[i].s, O_D[i].SizeG, &O_D[i].objective);
             }
             for (i = 0; i < beta_max; i++) {
-                if (O_D[i].cost >= S_D[i].cost) {
+                if (O_D[i].objective >= S_D[i].objective) {
                     for (j = 0; j < N; j++) S_D[i].s[j] = O_D[i].s[j];
                     for (k = 0; k < K; k++) S_D[i].SizeG[k] = O_D[i].SizeG[k];
-                    S_D[i].cost = O_D[i].cost;
-                } else if (LocalSearchCriterionCalcutlation(O_D[i].s, S_D[i].s, O_D[i].cost, S_D[i].cost) > 1) {
+                    S_D[i].objective = O_D[i].objective;
+                } else if (LocalSearchCriterionCalculation(&O_D[i], &S_D[i]) > 1) {
                     for (j = 0; j < N; j++) S_D[i].s[j] = O_D[i].s[j];
                     for (k = 0; k < K; k++) S_D[i].SizeG[k] = O_D[i].SizeG[k];
-                    S_D[i].cost = O_D[i].cost;
+                    S_D[i].objective = O_D[i].objective;
                 }
 
-                if (S_D[i].cost > S_b.cost) {
-                    for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
-                    for (k = 0; k < K; k++) S_b.SizeG[k] = S_D[i].SizeG[k];
-                    S_b.cost = S_D[i].cost;
+                if (S_best.objective < S_D[i].objective) {
+                    for (j = 0; j < N; j++) S_best.s[j] = S_D[i].s[j];
+                    for (k = 0; k < K; k++) S_best.SizeG[k] = S_D[i].SizeG[k];
+                    S_best.objective = S_D[i].objective;
                 }
             }
         }
@@ -423,12 +423,12 @@ void SearchAlgorithmDisperion() {
         // Direct Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
             DirectPerturbationDispersion(eta_max, S_D[i].s, S_D[i].SizeG);
-            DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].cost);
+            DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].objective);
 
-            if (S_D[i].cost > S_b.cost) {
-                for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
-                for (k = 0; k < K; k++) S_b.SizeG[k] = S_D[i].SizeG[k];
-                S_b.cost = S_D[i].cost;
+            if (S_D[i].objective > S_best.objective) {
+                for (j = 0; j < N; j++) S_best.s[j] = S_D[i].s[j];
+                for (k = 0; k < K; k++) S_best.SizeG[k] = S_D[i].SizeG[k];
+                S_best.objective = S_D[i].objective;
             }
         }
 
@@ -444,7 +444,7 @@ void SearchAlgorithmDisperion() {
     Rprintf("The run time of the distance_clustering algortihm in seconds is: %f\n", elapsed_time);
 }
 
-void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* cost) {
+void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* objective) {
 
     int v, g, u;
 
@@ -528,10 +528,10 @@ void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* c
         }
     } while (imp == 1);  // Continue until no improvement is made
     
-    // Before writing objective to *cost, first update this value!
-    objective = evaluate_objective(min_distance_per_cluster);
+    // Before writing objective to *objective, first update this value!
+    f_objective = evaluate_objective(min_distance_per_cluster);
     
-    *cost = objective;
+    *objective = f_objective;
 }
 
 
@@ -539,7 +539,7 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
 	Iteratively refines partitions to balance group sizes and minimize costs */
 
-    int i, j, k;
+    int k;
     int new_ind, ind1, ind2, selectedElement, minElement;
     double objective_k, minDeltaValue, maxDeltaValue;
 
@@ -551,7 +551,7 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
 
         // Reset tracking variables
         number = 0;
-        for (i = 0; i < K; i++) {
+        for (int i = 0; i < K; i++) {
             UnderLB[i] = 0;
             Rd[i] = -1;
         }
@@ -603,7 +603,6 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
         // Handle groups that are under the lower bound (LB)
         int selectedGroup;
         int nn = 0;
-        int k;
         while (nn < number) {
             // pseudo code line 17 - 29
             k = random_int(K);
@@ -622,7 +621,7 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
 
             // store values before adding() in temporary values. This speeds-up the removing-process. In short:
             maxDeltaValue = -INFINITY; // min_delta cannot become positive by adding a new data point to a cluster for dispersion
-            for (i = 0; i < K; i++) {
+            for (int i = 0; i < K; i++) {
                 new_ind = Rd[i];
                 if (new_ind > -1) {
                     ind1 = min_distance_tuple[k][0];
@@ -662,7 +661,7 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
             maxDeltaValue = -INFINITY;
             new_ind = Rd[selectedGroup];
             Rd[selectedGroup] = -1;
-            for (k = 0; k < K; i++) {
+            for (k = 0; k < K; k++) {
                 // check that upper-bound tmpUB[k] is not yet reached
                     if (SizeGroup[k] < UB[k]) {
                     ind1 = min_distance_tuple[k][0];
@@ -774,7 +773,7 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
                     } while (SelectEle[selectedElement] == -1);
 
                     solutionChild[SelectEle[selectedElement]] = targetGroup;
-                    SelectEleTemp[processedCount++] = SelectEle[selectedElement];
+                    tmpEle[processedCount++] = SelectEle[selectedElement];
                     vectorElement[SelectEle[selectedElement]] = -1;
                     SelectEle[selectedElement] = -1;
                 }
@@ -785,7 +784,7 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
                      // 14  from Pseudogroup Algotihm 5 
                     solutionChild[SelectEle[j]] = targetGroup;
                     vectorElement[SelectEle[j]] = -1;
-                    SelectEleTemp[j] = SelectEle[j];
+                    tmpEle[j] = SelectEle[j];
                 }
             }
         } else {
@@ -829,7 +828,7 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
                     } while (SelectEle[selectedElement] == -1);
 
                     solutionChild[SelectEle[selectedElement]] = targetGroup;
-                    SelectEleTemp[processedCount++] = SelectEle[selectedElement];
+                    tmpEle[processedCount++] = SelectEle[selectedElement];
                     vectorElement[SelectEle[selectedElement]] = -1;
                     SelectEle[selectedElement] = -1;
                 }
@@ -839,17 +838,17 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
                 for (j = 0; j < elementCount; j++) {
                     solutionChild[SelectEle[j]] = targetGroup;
                     vectorElement[SelectEle[j]] = -1;
-                    SelectEleTemp[j] = SelectEle[j];
+                    tmpEle[j] = SelectEle[j];
                 }
             }
         }
 
         // Update group dispersion
         for (j = 0; j < elementCount; j++) {
-            removing(SelectEleTemp[j], s1, min_distance_tuple_s1, min_distance_per_cluster_s1);
-            removing(SelectEleTemp[j], s2, min_distance_tuple_s2, min_distance_per_cluster_s2);
-            s1[SelectEleTemp[j]] = -1;
-            s2[SelectEleTemp[j]] = -1;
+            removing(tmpEle[j], s1, min_distance_tuple_s1, min_distance_per_cluster_s1);
+            removing(tmpEle[j], s2, min_distance_tuple_s2, min_distance_per_cluster_s2);
+            s1[tmpEle[j]] = -1;
+            s2[tmpEle[j]] = -1;
         }
 
         // group should not be available anymore
@@ -986,8 +985,8 @@ void AssignMemoryDispersion() {
         O_D[i].SizeG = (int*)malloc(K * sizeof(int));
     }
     
-    S_b.s = (int*)malloc(N * sizeof(int));
-    S_b.SizeG = (int*)malloc(K * sizeof(int));
+    S_best.s = (int*)malloc(N * sizeof(int));
+    S_best.SizeG = (int*)malloc(K * sizeof(int));
     
     Rd = (int*)malloc(K * sizeof(int));
     for (i = 0; i < K; i++) Rd[i] = 0;
@@ -1001,7 +1000,7 @@ void AssignMemoryDispersion() {
     groupElement = (int*)malloc(K * sizeof(int));
     SelectEle = (int*)malloc(N * sizeof(int));
     SelectGroup = (int*)malloc(K * sizeof(int));
-    SelectEleTemp = (int*)malloc(N * sizeof(int));
+    tmpEle = (int*)malloc(N * sizeof(int));
     s1 = (int*)malloc(N * sizeof(int));
     s2 = (int*)malloc(N * sizeof(int));
 }
@@ -1010,8 +1009,8 @@ void ReleaseMemoryDispersion() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
 
-    free(S_b.s); S_b.s = NULL;
-    free(S_b.SizeG); S_b.SizeG = NULL;
+    free(S_best.s); S_best.s = NULL;
+    free(S_best.SizeG); S_best.SizeG = NULL;
     
    // Rprintf("relesee dispersion Until now runs trhough.");
     // IMPORTANT: releasing S_D and O_D like for TPSDP leads to error!
@@ -1040,7 +1039,7 @@ void ReleaseMemoryDispersion() {
     free(groupElement); groupElement = NULL;
     free(SelectEle); SelectEle = NULL;
     free(SelectGroup); SelectGroup = NULL;
-    free(SelectEleTemp); SelectEleTemp = NULL;
+    free(tmpEle); tmpEle = NULL;
     free(s1); s1 = NULL;
     free(s2); s2 = NULL;
 }

@@ -27,19 +27,19 @@ double **Delta_Matrix_p2;
 // main processure
 int maxNumberIterations;
 double start_time, Time_limit;
-Solution S_b; //best solution
+Solution S_best; //best solution
 Solution *S; //S_i
 Solution *O; //O_i in crossover
 
 //double neighboorhood local search
-double objective;
+double f_objective;
 
 // for crossover
 int *vectorElement;
 int *groupElement;
 int *SelectGroup;
 int *SelectEle;
-int *SelectEleTemp;
+int *tmpEle;
 int *s1;
 int *s2;
 double *groupDiversity_s1;
@@ -58,7 +58,7 @@ void BuildGroupDiversityForCrossover(int partition[], double groupDiversity[]);
 void AssignMemoryDiversity(void);
 void ReleaseMemoryDiversity(void);
 void SearchAlgorithmDiversity(void);
-void DoubleNeighborhoodLocalSearchDiversity(int partition[], int SizeGroup[], double* cost);
+void DoubleNeighborhoodLocalSearchDiversity(int partition[], int SizeGroup[], double* objective);
 void CrossoverDiversity(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 
 /* TPSPD for Anticlustering Based on a Distance matrix
@@ -87,7 +87,7 @@ void CrossoverDiversity(int partition1[], int partition2[], int score[], int scS
  * param *Alpha: Parameter for weitghing the discrimitation of a slighlty worse local optiomal child solution
  *               in Yang et al. set to 0.05 (might differ due to different implemetnation of calculation).
  * param *result: Calculated assignment of elements to clusters. Emptz vector.
- * param *cost: Value of objective function.
+ * param *objective: Value of objective function.
  * param *mem_error: This is passed with value 0 and only receives the value 1 
  *       if a memory error occurs when executing this function. The caller needs
  *       to test if this value is 1 after execution.
@@ -172,11 +172,11 @@ void three_phase_search_dynamic_population_size(
     
   SearchAlgorithmDiversity();
   
-  //save S_b -> solution with result
+  //save S_best -> solution with result
   for (int i = 0; i < N; i++){
-    result[i] = S_b.s[i];
+    result[i] = S_best.s[i];
   }
-  *score = S_b.cost;
+  *score = S_best.objective;
   *elapsed_time = Time_limit;
   
   // Remember to free the allocated memory after use
@@ -202,20 +202,20 @@ void SearchAlgorithmDiversity() {
     //important! for windows and linux there is a differnt definition of this time
     //on windows its the wall time, on linux the CPU time
     clock_t start_time = clock();
-    S_b.cost = -INFINITY;
+    S_best.objective = -INFINITY;
     
     // Initial population generation
     int i, j, k;
     for (i = 0; i < beta_max; i++) {
         /* Algorithm 2: initializes a solution S_D[i] */
         RandomInitialSol(S[i].s, S[i].SizeG);
-        DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &(S[i].cost));
+        DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &(S[i].objective));
 
-        /* Update the best solution S_b if necessary */
-        if (S[i].cost > S_b.cost) {
-            for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
-            for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
-            S_b.cost = S[i].cost;
+        /* Update the best solution S_best if necessary */
+        if (S_best.objective < S[i].objective) {
+            for (j = 0; j < N; j++) S_best.s[j] = S[i].s[j];
+            for (k = 0; k < K; k++) S_best.SizeG[k] = S[i].SizeG[k];
+            S_best.objective = S[i].objective;
         }
     }
  
@@ -225,17 +225,17 @@ void SearchAlgorithmDiversity() {
         for (i = 0; i < beta_max; i++) {
             for (j = 0; j < N; j++) O[i].s[j] = S[i].s[j];
             for (k = 0; k < K; k++) O[i].SizeG[k] = S[i].SizeG[k];
-            O[i].cost = S[i].cost;
+            O[i].objective = S[i].objective;
         }
         // Strong Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
             UndirectedPerturbation(eta, S[i].s, S[i].SizeG);
-            DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &S[i].cost);
+            DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &S[i].objective);
 
-            if (S[i].cost > S_b.cost) {
-                for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
-                for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
-                S_b.cost = S[i].cost;
+            if (S_best.objective < S[i].objective) {
+                for (j = 0; j < N; j++) S_best.s[j] = S[i].s[j];
+                for (k = 0; k < K; k++) S_best.SizeG[k] = S[i].SizeG[k];
+                S_best.objective = S[i].objective;
             }
         }
 
@@ -248,23 +248,23 @@ void SearchAlgorithmDiversity() {
                 }
 
                 CrossoverDiversity(S[i].s, S[pickedSolution].s, O[i].s, O[i].SizeG);
-                DoubleNeighborhoodLocalSearchDiversity(O[i].s, O[i].SizeG, &O[i].cost);
+                DoubleNeighborhoodLocalSearchDiversity(O[i].s, O[i].SizeG, &O[i].objective);
             }
             for (i = 0; i < beta_max; i++) {
-                if (O[i].cost >= S[i].cost) {
+                if (O[i].objective >= S[i].objective) {
                     for (j = 0; j < N; j++) S[i].s[j] = O[i].s[j];
                     for (k = 0; k < K; k++) S[i].SizeG[k] = O[i].SizeG[k];
-                    S[i].cost = O[i].cost;
-                } else if (LocalSearchCriterionCalcutlation(O[i].s, S[i].s, O[i].cost, S[i].cost) > 1) {
+                    S[i].objective = O[i].objective;
+                } else if (LocalSearchCriterionCalculation(&O[i], &S[i]) > 1) {
                     for (j = 0; j < N; j++) S[i].s[j] = O[i].s[j];
                     for (k = 0; k < K; k++) S[i].SizeG[k] = O[i].SizeG[k];
-                    S[i].cost = O[i].cost;
+                    S[i].objective = O[i].objective;
                 }
                 
-                if (S[i].cost > S_b.cost) {
-                    for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
-                    for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
-                    S_b.cost = S[i].cost;
+                if (S_best.objective < S[i].objective) {
+                    for (j = 0; j < N; j++) S_best.s[j] = S[i].s[j];
+                    for (k = 0; k < K; k++) S_best.SizeG[k] = S[i].SizeG[k];
+                    S_best.objective = S[i].objective;
                 }
             }
         }
@@ -272,12 +272,12 @@ void SearchAlgorithmDiversity() {
         // Direct Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
             DirectPerturbationDiversity(eta_max, S[i].s, S[i].SizeG);
-            DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &S[i].cost);
+            DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &S[i].objective);
 
-            if (S[i].cost > S_b.cost) {
-                for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
-                for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
-                S_b.cost = S[i].cost;
+            if (S[i].objective > S_best.objective) {
+                for (j = 0; j < N; j++) S_best.s[j] = S[i].s[j];
+                for (k = 0; k < K; k++) S_best.SizeG[k] = S[i].SizeG[k];
+                S_best.objective = S[i].objective;
             }
         }
 
@@ -294,14 +294,14 @@ void SearchAlgorithmDiversity() {
 }
 
 int CompareSolution(const void *first, const void *second) {
-    /* Compares two solutions based on their cost */
+    /* Compares two solutions based on their objective */
     Solution *solution1 = (Solution *)first;
     Solution *solution2 = (Solution *)second;
 
-    if (solution1->cost < solution2->cost) {
-        return 1;  // solution2 has a greater cost
-    } else if (solution1->cost > solution2->cost) {
-        return -1; // solution1 has a greater cost
+    if (solution1->objective < solution2->objective) {
+        return 1;  // solution2 has a greater objective
+    } else if (solution1->objective > solution2->objective) {
+        return -1; // solution1 has a greater objective
     } else {
         return 0;  // Both costs are equal
     }
@@ -393,12 +393,12 @@ void RandomInitialSol(int s[], int SizeG[]) {
 }
 
 
-void DoubleNeighborhoodLocalSearchDiversity(int s[], int SizeGroup[], double* cost) {
+void DoubleNeighborhoodLocalSearchDiversity(int s[], int SizeGroup[], double* objective) {
     const double DELTA_THRESHOLD = 0.0001;  // Define a constant for comparison threshold
     int v, g, u;
     int oldGroup, oldGroup1, t;
 
-    // Build the delta_f matrix for cost changes
+    // Build the delta_f matrix for objective changes
     BuildDeltaMatrix(s);
 
     // Initialize the delta_f value
@@ -428,8 +428,8 @@ void DoubleNeighborhoodLocalSearchDiversity(int s[], int SizeGroup[], double* co
                         // Assign v to new group
                         s[v] = g;
 
-                        // Update total cost
-                        objective += delta_f;
+                        // Update total objective
+                        f_objective += delta_f;
 
                         // Mark as improved
                         imp = 1;
@@ -460,8 +460,8 @@ void DoubleNeighborhoodLocalSearchDiversity(int s[], int SizeGroup[], double* co
                         s[v] = s[u];
                         s[u] = t;
 
-                        // Update total cost
-                        objective += delta_f;
+                        // Update total objective
+                        f_objective += delta_f;
 
                         // Mark as improved
                         imp = 1;
@@ -472,7 +472,7 @@ void DoubleNeighborhoodLocalSearchDiversity(int s[], int SizeGroup[], double* co
     } while (imp == 1);  // Continue until no improvement is made
 
     // Update the partition array with the final assignments
-    *cost = objective;
+    *objective = f_objective;
 }
 
 void UndirectedPerturbation(int theta, int s[], int SizeGroup[]) {
@@ -694,7 +694,7 @@ void process_partition(double* groupDiversity, int* partition,  int* tmpUB, int*
             }
 
             childSolution[SelectEle[selectedElement]] = targetGroup;
-            SelectEleTemp[processedCount++] = SelectEle[selectedElement];
+            tmpEle[processedCount++] = SelectEle[selectedElement];
             vectorElement[SelectEle[selectedElement]] = -1;
             SelectEle[selectedElement] = -1;
         }
@@ -704,7 +704,7 @@ void process_partition(double* groupDiversity, int* partition,  int* tmpUB, int*
         for (i = 0; i < elementCount; i++) {
             childSolution[SelectEle[i]] = targetGroup;
             vectorElement[SelectEle[i]] = -1;
-            SelectEleTemp[i] = SelectEle[i];
+            tmpEle[i] = SelectEle[i];
         }
     }
     *element_count = elementCount;
@@ -770,10 +770,10 @@ void CrossoverDiversity(int partition1[], int partition2[], int childSolution[],
 
         // Update group diversity
         for (j = 0; j < elementCount; j++) {
-            groupDiversity_s1[s1[SelectEleTemp[j]]] -= Delta_Matrix_p1[SelectEleTemp[j]][s1[SelectEleTemp[j]]];
-            groupDiversity_s2[s2[SelectEleTemp[j]]] -= Delta_Matrix_p2[SelectEleTemp[j]][s2[SelectEleTemp[j]]];
-            s1[SelectEleTemp[j]] = -1;
-            s2[SelectEleTemp[j]] = -1;
+            groupDiversity_s1[s1[tmpEle[j]]] -= Delta_Matrix_p1[tmpEle[j]][s1[tmpEle[j]]];
+            groupDiversity_s2[s2[tmpEle[j]]] -= Delta_Matrix_p2[tmpEle[j]][s2[tmpEle[j]]];
+            s1[tmpEle[j]] = -1;
+            s2[tmpEle[j]] = -1;
         }
 
         tmpUB[targetGroup] = -1;
@@ -889,37 +889,38 @@ void CrossoverDiversity(int partition1[], int partition2[], int childSolution[],
     }
 }
 
-double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], double cost1, double cost2) {
-    /* 
+double LocalSearchCriterionCalculation(Solution* sol1, Solution* sol2) {
+    /*
      * Evaluates the quality and dissimilarity of partitions.
-     * It calculates the value that combines the ratio of costs and a
-     * dissimilarity factor between partition1 and partition2.
+     * It calculates the value that combines the ratio of costs (sol1->f / sol2->f)
+     * and a dissimilarity factor between sol1->partition and sol2->partition.
      */
-    
+
     // Handle potential division by zero
-    if (cost2 == 0.0) {
-        Rprintf("Error: Division by zero (cost2 is zero).\n");
-        return -1;  
+    if (sol2->objective == 0.0) {
+        Rprintf("Error: Division by zero (sol2->f is zero).\n");
+        return -1;
     }
 
     int i, j;
-    int count = 0;
     int totalPairs = (N * (N - 1)) / 2;  // Number of unique pairs (i, j) where i < j
+    int count = 0;
 
     // Loop over all pairs of elements to count dissimilar pairs
     for (i = 0; i < N - 1; i++) {
         for (j = i + 1; j < N; j++) {
             // Count cases where elements are grouped differently in the two partitions
-            if ((partition1[i] == partition1[j]) !=  (partition2[i] == partition2[j])) {
+            if ((sol1->s[i] == sol1->s[j]) != (sol2->s[i] == sol2->s[j])) {
                 count++;
             }
         }
     }
 
-    // Calculate ratio of costs + dissimilarity factor
-    // should alpha not be alpha/2 ?
+    // Calculate dissimilarity factor
     double dissimilarityFactor = ((double)count / totalPairs) * K;
-    return  cost1 / cost2 +  alpha *  dissimilarityFactor;
+
+    // Calculate and return the criterion value (ratio of costs + weighted dissimilarity factor)
+    return sol1->objective / sol2->objective + alpha * dissimilarityFactor;
 }
 
 void ClearDeltaMatrix() {
@@ -946,11 +947,11 @@ void BuildDeltaMatrix(int partition[]) {
     }
 
     // Calculate the objective function value
-    objective = 0.0;
+    f_objective = 0.0;
     for (i = 0; i < N; i++) {
-        objective += Delta_Matrix[i][partition[i]];
+        f_objective += Delta_Matrix[i][partition[i]];
     }
-    objective /= 2.0;
+    f_objective /= 2.0;
 }
 
 void BuildGroupDiversityForCrossover(int partition[], double groupDiversity[]) {
@@ -1006,8 +1007,8 @@ void AssignMemoryDiversity() {
     groupDiversity_s2 = (double*)malloc(K * sizeof(double));
     
 
-    S_b.s = (int*)malloc(N * sizeof(int));
-    S_b.SizeG = (int*)malloc(K * sizeof(int));
+    S_best.s = (int*)malloc(N * sizeof(int));
+    S_best.SizeG = (int*)malloc(K * sizeof(int));
     
     Avg = (double**)malloc(K * sizeof(double*));
     for (i = 0; i < K; i++) Avg[i] = (double*)malloc(K * sizeof(double));
@@ -1023,7 +1024,7 @@ void AssignMemoryDiversity() {
     groupElement = (int*)malloc(K * sizeof(int));
     SelectEle = (int*)malloc(N * sizeof(int));
     SelectGroup = (int*)malloc(K * sizeof(int));
-    SelectEleTemp = (int*)malloc(N * sizeof(int));
+    tmpEle = (int*)malloc(N * sizeof(int));
     s1 = (int*)malloc(N * sizeof(int));
     s2 = (int*)malloc(N * sizeof(int));
 }
@@ -1042,8 +1043,8 @@ void ReleaseMemoryDiversity() {
     free(S); S = NULL;
     free(O); O = NULL;
     
-    free(S_b.s); S_b.s = NULL;
-    free(S_b.SizeG); S_b.SizeG = NULL;
+    free(S_best.s); S_best.s = NULL;
+    free(S_best.SizeG); S_best.SizeG = NULL;
     free(LB); LB = NULL;
     free(UB); UB = NULL;
     
@@ -1068,7 +1069,7 @@ void ReleaseMemoryDiversity() {
     free(groupElement); groupElement = NULL;
     free(SelectEle); SelectEle = NULL;
     free(SelectGroup); SelectGroup = NULL;
-    free(SelectEleTemp); SelectEleTemp = NULL;
+    free(tmpEle); tmpEle = NULL;
     free(s1); s1 = NULL;
     free(s2); s2 = NULL;
 }
