@@ -8,6 +8,7 @@ on:
       - github_actions
       - tpspd_heurestic
       - add_dispersion
+      - test-add-dispersion
   pull_request:
     branches:
       - main
