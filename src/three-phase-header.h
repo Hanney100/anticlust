@@ -14,6 +14,6 @@ void fisher_yates_shuffle(int arr[], int n);
 void RandomInitialSol(int s[], int SizeG[]);
 void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]);
 double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], double cost1, double cost2);
-int Cmpare(const void *a, const void *b);
+int CompareSolution(const void *first, const void *second);
 
 #endif // THREE_PHASE_HEADER_H

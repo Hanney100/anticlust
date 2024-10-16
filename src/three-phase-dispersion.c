@@ -373,8 +373,7 @@ void SearchAlgorithmDisperion() {
         }
     }
  
-    int counter = 1;
-    while (counter <= maxNumberIterations) {
+    for (int counter = 1; counter <= maxNumberIterations; counter++) {
         
         eta = (int)(theta * N / K);
         for (i = 0; i < beta_max; i++) {
@@ -398,7 +397,7 @@ void SearchAlgorithmDisperion() {
         if (beta_max > 1) {
             for (i = 0; i < beta_max; i++) {
                 pickedSolution = random_int(beta_max);
-                while (pickedSolution == i) {
+                if (pickedSolution == i) {
                     pickedSolution = (pickedSolution + 1) % beta_max;
                 }
 
@@ -437,11 +436,9 @@ void SearchAlgorithmDisperion() {
         }
 
         // Linearly decrease population size
-        // Note: Implement sort function based on the comparison function `Cmpare`
-        qsort(S_D, beta_max, sizeof(Solution), Cmpare);
+        qsort(S_D, beta_max, sizeof(Solution), CompareSolution);
         beta_max = (int)(beta_min - beta_max) * counter / maxNumberIterations + beta_max;
         theta = theta_max - (theta_max - theta_min) * counter / maxNumberIterations;
-        counter++;
     }
 
     // Stop measuring time and calculate the elapsed time
@@ -453,7 +450,6 @@ void SearchAlgorithmDisperion() {
 void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* cost) {
 
     int v, g, u;
-    int imp;
 
     // Initialize the delta_f value and tuple arrays
     double delta_f = -99999.0;
@@ -461,6 +457,7 @@ void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* c
 
     int g1, g2;
     double old_f1, old_f2, delta_min;
+    int imp;
     do { 
         imp = 0;  // Reset improvement flag
 
@@ -616,9 +613,9 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
             k = random_int(K);
 
             // Find the element with the highest average connection to the group
-            do {
+            while (UnderLB[k] == 0) {
                 k = (k + 1) % K;
-            } while (UnderLB[k] == 0);
+            }
             
             // IMPORTANT: add the next five lines here
             // IF cluster k has less than 2 elements its min_distance is set to INFINITY.
@@ -661,10 +658,10 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
         nn = 0;
         while (nn < K - number) {
             // pseuo group line 32 - 43
-            selectedGroup = rand() % K;
-            do {
+            selectedGroup = random_int(K);
+            while (Rd[selectedGroup] == -1) {
                 selectedGroup = (selectedGroup + 1) % K;
-            } while (Rd[selectedGroup] == -1);
+            }
 
             maxDeltaValue = -INFINITY;
             new_ind = Rd[selectedGroup];
@@ -895,9 +892,9 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
 
     while (processedCount < totalLowerBound) {
         targetGroup = random_int(K);
-        do {
+        while (BigThanLB[targetGroup] == 0) {
             targetGroup = (targetGroup + 1) % K;
-        } while (BigThanLB[targetGroup] == 0);
+        } 
 
         elementCount = 0;
         for (j = 0; j < N; j++) {
@@ -925,9 +922,9 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
 
     while (totalBelowLowerBound < sumLB) {
         targetGroup = random_int(K);
-        do {
+        while (LBGroup[targetGroup] == 0) {
             targetGroup = (targetGroup + 1) % K;
-        } while (LBGroup[targetGroup] == 0);
+        }
 
         elementCount = 0;
         for (i = 0; i < N; i++) {
@@ -956,9 +953,9 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
 
     while (totalSize < N) {
         targetGroup = random_int(K);
-        do {
+        while (UBGroup[targetGroup] == 0) {
             targetGroup = (targetGroup + 1) % K;
-        } while (UBGroup[targetGroup] == 0);
+        }
 
         elementCount = 0;
         for (i = 0; i < N; i++) {

@@ -223,8 +223,7 @@ void SearchAlgorithmDiversity() {
         }
     }
  
-    int counter = 1;
-    while (counter <= maxNumberIterations) {
+    for (int counter = 1; counter <= maxNumberIterations; counter++) {
         
         eta = (int)(theta * N / K);
         for (i = 0; i < beta_max; i++) {
@@ -248,7 +247,7 @@ void SearchAlgorithmDiversity() {
         if (beta_max > 1) {
             for (i = 0; i < beta_max; i++) {
                 pickedSolution = random_int(beta_max);
-                while (pickedSolution == i) {
+                if (pickedSolution == i) {
                     pickedSolution = (pickedSolution + 1) % beta_max;
                 }
 
@@ -287,11 +286,9 @@ void SearchAlgorithmDiversity() {
         }
 
         // Linearly decrease population size
-        // Note: Implement sort function based on the comparison function `Cmpare`
-        qsort(S, beta_max, sizeof(Solution), Cmpare);
+        qsort(S, beta_max, sizeof(Solution), CompareSolution);
         beta_max = (int)(beta_min - beta_max) * counter / maxNumberIterations + beta_max;
         theta = theta_max - (theta_max - theta_min) * counter / maxNumberIterations;
-        counter++;
     }
 
     // Stop measuring time and calculate the elapsed time
@@ -300,11 +297,18 @@ void SearchAlgorithmDiversity() {
     Time_limit = elapsed_time;
 }
 
-int Cmpare(const void *a, const void *b) {
+int CompareSolution(const void *first, const void *second) {
     /* Compares two solutions based on their cost */
-    Solution *solA = (Solution *)a;
-    Solution *solB = (Solution *)b;
-    return (solB->cost - solA->cost); // Return positive if b is greater, negative if a is greater
+    Solution *solution1 = (Solution *)first;
+    Solution *solution2 = (Solution *)second;
+
+    if (solution1->cost < solution2->cost) {
+        return 1;  // solution2 has a greater cost
+    } else if (solution1->cost > solution2->cost) {
+        return -1; // solution1 has a greater cost
+    } else {
+        return 0;  // Both costs are equal
+    }
 }
 
 // Function to swap two elements
@@ -808,9 +812,9 @@ void CrossoverDiversity(int partition1[], int partition2[], int childSolution[],
     }
     while (processedCount < totalLowerBound) {
         targetGroup = random_int(K);
-        do {
+        while (BigThanLB[targetGroup] == 0) {
             targetGroup = (targetGroup + 1) % K;
-        } while (BigThanLB[targetGroup] == 0);
+        }
 
         elementCount = 0;
         for (j = 0; j < N; j++) {
@@ -838,9 +842,9 @@ void CrossoverDiversity(int partition1[], int partition2[], int childSolution[],
     }
     while (totalBelowLowerBound < sumLB) {
         targetGroup = random_int(K);
-        do {
+        while (LBGroup[targetGroup] == 0) {
             targetGroup = (targetGroup + 1) % K;
-        } while (LBGroup[targetGroup] == 0);
+        }
 
         elementCount = 0;
         for (i = 0; i < N; i++) {
@@ -869,9 +873,9 @@ void CrossoverDiversity(int partition1[], int partition2[], int childSolution[],
     }
     while (totalSize < N) {
         targetGroup = random_int(K);
-        do {
+        while (UBGroup[targetGroup] == 0) {
             targetGroup = (targetGroup + 1) % K;
-        } while (UBGroup[targetGroup] == 0);
+        }
 
         elementCount = 0;
         for (i = 0; i < N; i++) {
