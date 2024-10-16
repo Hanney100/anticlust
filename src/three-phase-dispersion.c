@@ -35,27 +35,24 @@ int* tuple1;
 int* tuple2;
 
 // Crosssover
-double *min_distance_per_cluster_p1;
-int **min_distance_tuple_p1;
-double *min_distance_per_cluster_p2;
-int **min_distance_tuple_p2;
-extern int *SelectEle;
-extern int *SelectEleTemp;
-extern int *SelectGroup;
-extern int *p1;
-extern int *p2;
-
-// for ;crossover
+double *min_distance_per_cluster_s1;
+int **min_distance_tuple_s1;
+double *min_distance_per_cluster_s2;
+int **min_distance_tuple_s2;
 extern int *vectorElement;
 extern int *groupElement;
+extern int *SelectGroup;
+extern int *SelectEle;
+extern int *SelectEleTemp;
+extern int *s1;
+extern int *s2;
 extern int *LBGroup;
 extern int *UBGroup;
 extern int *BigThanLB;
-extern int *ub;
+extern int *tmpUB;
 
 //directed pertubation
 extern int* Rd, * UnderLB; //Rd=R
-extern int *SizeG; //c_g
 
 void adding(int new_ind, int g, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void removing(int removed_ind, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
@@ -67,7 +64,7 @@ void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tu
 void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* cost);
 void SearchAlgorithmDisperion(void);
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
-void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]);
+void DirectPerturbationDispersion(int eta_max, int s[], int SizeG[]);
 void AssignMemoryDispersion();
 void ReleaseMemoryDispersion();
 
@@ -164,15 +161,15 @@ void three_phase_search_dispersion(
   for (int i = 0; i < K; i++) {
     min_distance_tuple[i] = malloc(2 * sizeof(int));
   }
-  min_distance_per_cluster_p1 = (double *)malloc(K * sizeof(double));
-  min_distance_tuple_p1 = malloc(K * sizeof(int *));
+  min_distance_per_cluster_s1 = (double *)malloc(K * sizeof(double));
+  min_distance_tuple_s1 = malloc(K * sizeof(int *));
   for (int i = 0; i < K; i++) {
-    min_distance_tuple_p1[i] = malloc(2 * sizeof(int)); // IMPORTANT: typo: missing p1 / p2 below
+    min_distance_tuple_s1[i] = malloc(2 * sizeof(int)); // IMPORTANT: typo: missing s1 / s2 below
   }
-  min_distance_per_cluster_p2 = (double *)malloc(K * sizeof(double));
-  min_distance_tuple_p2 = malloc(K * sizeof(int *));
+  min_distance_per_cluster_s2 = (double *)malloc(K * sizeof(double));
+  min_distance_tuple_s2 = malloc(K * sizeof(int *));
   for (int i = 0; i < K; i++) {
-    min_distance_tuple_p2[i] = malloc(2 * sizeof(int));
+    min_distance_tuple_s2[i] = malloc(2 * sizeof(int));
     
   }
   
@@ -213,15 +210,15 @@ void three_phase_search_dispersion(
   // Remember to free the allocated memory after use
   for (int i = 0; i < K; i++){
         free(min_distance_tuple[i]); min_distance_tuple[i] = NULL;
-        free(min_distance_tuple_p1[i]); min_distance_tuple_p1[i] = NULL;
-        free(min_distance_tuple_p2[i]); min_distance_tuple_p2[i] = NULL;
+        free(min_distance_tuple_s1[i]); min_distance_tuple_s1[i] = NULL;
+        free(min_distance_tuple_s2[i]); min_distance_tuple_s2[i] = NULL;
   }
   free(min_distance_per_cluster); min_distance_per_cluster = NULL;
   free(min_distance_tuple); min_distance_tuple = NULL;
-  free(min_distance_per_cluster_p1); min_distance_per_cluster_p1 = NULL;
-  free(min_distance_tuple_p1); min_distance_tuple_p1 = NULL;
-  free(min_distance_per_cluster_p2); min_distance_per_cluster_p2 = NULL;
-  free(min_distance_tuple_p2); min_distance_tuple_p2 = NULL;
+  free(min_distance_per_cluster_s1); min_distance_per_cluster_s1 = NULL;
+  free(min_distance_tuple_s1); min_distance_tuple_s1 = NULL;
+  free(min_distance_per_cluster_s2); min_distance_per_cluster_s2 = NULL;
+  free(min_distance_tuple_s2); min_distance_tuple_s2 = NULL;
   for (int i = 0; i < N; i++) {
     free(Distances[i]); Distances[i] = NULL;
     free(DistancesT[i]); DistancesT[i] = NULL;
@@ -542,16 +539,15 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
 	Iteratively refines partitions to balance group sizes and minimize costs */
 
-    int i, j, k, L, number, minElement;
-    int new_ind, ind1, ind2, selectedElement;
+    int i, j, k;
+    int new_ind, ind1, ind2, selectedElement, minElement;
     double objective_k, minDeltaValue, maxDeltaValue;
 
-    for (j = 0; j < K; j++) SizeG[j] = SizeGroup[j];
     fill_arrays(s, min_distance_tuple, min_distance_per_cluster);
 
-
     // Main loop for perturbation iterations
-    for (L = 0; L < eta_max; L++) {
+    int number;
+    for (int L = 0; L < eta_max; L++) {
 
         // Reset tracking variables
         number = 0;
@@ -593,10 +589,10 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
 
             // Record the minimum element for removal
             Rd[k] = minElement;
-            SizeG[k] -= 1;
+            SizeGroup[k] -= 1;
 
             // If the group size falls below the lower bound, mark it
-            if (SizeG[k] < LB[k]) {
+            if (SizeGroup[k] < LB[k]) {
                 UnderLB[k] = 1;
                 number += 1;
             }
@@ -667,8 +663,8 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
             new_ind = Rd[selectedGroup];
             Rd[selectedGroup] = -1;
             for (k = 0; k < K; i++) {
-                // check that upper-bound ub[k] is not yet reached
-                    if (SizeG[k] < UB[k]) {
+                // check that upper-bound tmpUB[k] is not yet reached
+                    if (SizeGroup[k] < UB[k]) {
                     ind1 = min_distance_tuple[k][0];
                     ind2 = min_distance_tuple[k][1];
                     objective_k = min_distance_per_cluster[k];
@@ -689,8 +685,6 @@ void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]) {
             nn += 1;
         }
     }
-
-    for (j = 0; j < K; j++) SizeGroup[j] = SizeG[j];
 }
 
 void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[], int scSizeGroup[]) {
@@ -703,19 +697,19 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
     int selectedElement;
     int totalLowerBound, totalBelowLowerBound;
 
-    // Initialize p1 and p2s with partition1
+    // Initialize s1 and p2s with partition1
     for (i = 0; i < N; i++) {
-        p1[i] = partition1[i];
-        p2[i] = partition2[i];
+        s1[i] = partition1[i];
+        s2[i] = partition2[i];
     }
 
-    fill_arrays(p1, min_distance_tuple_p1, min_distance_per_cluster_p1);
-    fill_arrays(p2, min_distance_tuple_p2, min_distance_per_cluster_p2);
+    fill_arrays(s1, min_distance_tuple_s1, min_distance_per_cluster_s1);
+    fill_arrays(s2, min_distance_tuple_s2, min_distance_per_cluster_s2);
     for (int k = 0; k < K; k++) {
-        min_distance_per_cluster_p1[k] = min_distance_per_cluster[k];  //groupDiversity
-        min_distance_per_cluster_p2[k] = min_distance_per_cluster[k];
-        min_distance_tuple_p1[k][0] = min_distance_tuple[k][0];
-        min_distance_tuple_p2[k][1] = min_distance_tuple[k][0];
+        min_distance_per_cluster_s1[k] = min_distance_per_cluster[k];  //groupDiversity
+        min_distance_per_cluster_s2[k] = min_distance_per_cluster[k];
+        min_distance_tuple_s1[k][0] = min_distance_tuple[k][0];
+        min_distance_tuple_s2[k][1] = min_distance_tuple[k][0];
     }
     
     // Initialize arrays
@@ -728,7 +722,7 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
         UBGroup[i] = 0;
         BigThanLB[i] = 0;
         groupElement[i] = i;
-        ub[i] = UB[i];
+        tmpUB[i] = UB[i];
         scSizeGroup[i] = 0;
     }
 
@@ -739,8 +733,8 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
             //find group with highest dispersion
             maxGroupDispersion = -1;
             for (j = 0; j < K; j++) {
-                if (min_distance_per_cluster_p1[j] > maxGroupDispersion) {
-                    maxGroupDispersion = min_distance_per_cluster_p1[j];
+                if (min_distance_per_cluster_s1[j] > maxGroupDispersion) {
+                    maxGroupDispersion = min_distance_per_cluster_s1[j];
                     selectedGroup = j;
                 }
             }
@@ -748,7 +742,7 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
             // select elements to move
             elementCount = 0;
             for (j = 0; j < N; j++ ) {
-                if (p1[j] == selectedGroup) {
+                if (s1[j] == selectedGroup) {
                     SelectEle[elementCount++] = j;
                 }
             }
@@ -756,7 +750,7 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
            // choose groups who have enough space to hole seleccted groups
             groupCount = 0;
             for (j = 0; j < K; j++) {
-                if (ub[j] != -1 && ub[j] >= elementCount) {
+                if (tmpUB[j] != -1 && tmpUB[j] >= elementCount) {
                     SelectGroup[groupCount++] = j;
                 }
             }
@@ -765,8 +759,8 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
                 // 16  from Pseudogroup Algotihm 5 
                 int minDiff = 999999;
                 for (j = 0; j < K; j++) {
-                    if (ub[j] != -1 && elementCount - ub[j] < minDiff) {
-                        minDiff = elementCount - ub[j];
+                    if (tmpUB[j] != -1 && elementCount - tmpUB[j] < minDiff) {
+                        minDiff = elementCount - tmpUB[j];
                         targetGroup = j;
                     }
                 }
@@ -798,22 +792,22 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
             // Process partition2 
             maxGroupDispersion = -1;
             for (j = 0; j < K; j++) {
-                if (min_distance_per_cluster_p2[j] > maxGroupDispersion) {
-                    maxGroupDispersion = min_distance_per_cluster_p2[j];
+                if (min_distance_per_cluster_s2[j] > maxGroupDispersion) {
+                    maxGroupDispersion = min_distance_per_cluster_s2[j];
                     selectedGroup = j;
                 }
             }
 
             elementCount = 0;
             for (j = 0; j < N; j++) {
-                if (p2[j] == selectedGroup) {
+                if (s2[j] == selectedGroup) {
                     SelectEle[elementCount++] = j;
                 }
             }
 
             groupCount = 0;
             for (j = 0; j < K; j++) {
-                if (ub[j] != -1 && ub[j] >= elementCount) {
+                if (tmpUB[j] != -1 && tmpUB[j] >= elementCount) {
                     SelectGroup[groupCount++] = j;
                 }
             }
@@ -821,8 +815,8 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
             if (groupCount == 0) { // No valid group found
                 int minDiff = 999999;
                 for (j = 0; j < K; j++) {
-                    if (ub[j] != -1 && elementCount - ub[j] < minDiff) {
-                        minDiff = elementCount - ub[j];
+                    if (tmpUB[j] != -1 && elementCount - tmpUB[j] < minDiff) {
+                        minDiff = elementCount - tmpUB[j];
                         targetGroup = j;
                     }
                 }
@@ -852,16 +846,16 @@ void CrossoverDispersion(int partition1[], int partition2[], int solutionChild[]
 
         // Update group dispersion
         for (j = 0; j < elementCount; j++) {
-            removing(SelectEleTemp[j], p1, min_distance_tuple_p1, min_distance_per_cluster_p1);
-            removing(SelectEleTemp[j], p2, min_distance_tuple_p2, min_distance_per_cluster_p2);
-            p1[SelectEleTemp[j]] = -1;
-            p2[SelectEleTemp[j]] = -1;
+            removing(SelectEleTemp[j], s1, min_distance_tuple_s1, min_distance_per_cluster_s1);
+            removing(SelectEleTemp[j], s2, min_distance_tuple_s2, min_distance_per_cluster_s2);
+            s1[SelectEleTemp[j]] = -1;
+            s2[SelectEleTemp[j]] = -1;
         }
 
         // group should not be available anymore
-        min_distance_per_cluster_p1[targetGroup] = -1;
-        min_distance_per_cluster_p2[targetGroup] = -1;
-        ub[targetGroup] = -1;
+        min_distance_per_cluster_s1[targetGroup] = -1;
+        min_distance_per_cluster_s2[targetGroup] = -1;
+        tmpUB[targetGroup] = -1;
         scSizeGroup[targetGroup] = elementCount;
     }
 
@@ -981,8 +975,6 @@ void AssignMemoryDispersion() {
 	distance matrices, diversity measures, and neighborhood exploration.
 	*/
     
-    SizeG = (int*)malloc(K * sizeof(int));
-    
     S_D = (Solution*)malloc(beta_max * sizeof(Solution));
     O_D = (Solution*)malloc(beta_max * sizeof(Solution));
     
@@ -1001,7 +993,7 @@ void AssignMemoryDispersion() {
     for (i = 0; i < K; i++) Rd[i] = 0;
     UnderLB = (int*)malloc(K * sizeof(int));
     
-    ub = (int*)malloc(K * sizeof(int));
+    tmpUB = (int*)malloc(K * sizeof(int));
     LBGroup = (int*)malloc(K * sizeof(int));
     UBGroup = (int*)malloc(K * sizeof(int));
     BigThanLB = (int*)malloc(K * sizeof(int));
@@ -1010,15 +1002,13 @@ void AssignMemoryDispersion() {
     SelectEle = (int*)malloc(N * sizeof(int));
     SelectGroup = (int*)malloc(K * sizeof(int));
     SelectEleTemp = (int*)malloc(N * sizeof(int));
-    p1 = (int*)malloc(N * sizeof(int));
-    p2 = (int*)malloc(N * sizeof(int));
+    s1 = (int*)malloc(N * sizeof(int));
+    s2 = (int*)malloc(N * sizeof(int));
 }
 
 void ReleaseMemoryDispersion() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
-    
-    free(SizeG); SizeG = NULL;
 
     free(S_b.s); S_b.s = NULL;
     free(S_b.SizeG); S_b.SizeG = NULL;
@@ -1042,7 +1032,7 @@ void ReleaseMemoryDispersion() {
 
     free(Rd); Rd = NULL;
     free(UnderLB); UnderLB = NULL;
-    free(ub); ub = NULL;
+    free(tmpUB); tmpUB = NULL;
     free(LBGroup); LBGroup = NULL;
     free(UBGroup); UBGroup = NULL;
     free(BigThanLB); BigThanLB = NULL;
@@ -1051,6 +1041,6 @@ void ReleaseMemoryDispersion() {
     free(SelectEle); SelectEle = NULL;
     free(SelectGroup); SelectGroup = NULL;
     free(SelectEleTemp); SelectEleTemp = NULL;
-    free(p1); p1 = NULL;
-    free(p2); p2 = NULL;
+    free(s1); s1 = NULL;
+    free(s2); s2 = NULL;
 }

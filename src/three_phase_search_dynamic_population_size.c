@@ -19,6 +19,11 @@ double alpha;
 int beta_min; 
 int eta_max;
 
+// Matrix M
+double **Delta_Matrix;  // incremental matrix 
+double **Delta_Matrix_p1;
+double **Delta_Matrix_p2;
+
 // main processure
 int maxNumberIterations;
 double start_time, Time_limit;
@@ -29,32 +34,23 @@ Solution *O; //O_i in crossover
 //double neighboorhood local search
 double objective;
 
-// Matrix M
-double **Delta_Matrix;  // incremental matrix 
-double **Delta_Matrix_p1;
-double **Delta_Matrix_p2;
-double *groupDiversity_p1;
-double *groupDiversity_p2;
-int *SelectEle;
-int *SelectEleTemp;
-int *SelectGroup;
-int *p1;
-int *p2;
-
 // for crossover
 int *vectorElement;
 int *groupElement;
-int *LBGroup;
-int *UBGroup;
-int *BigThanLB;
-int *ub;
+int *SelectGroup;
+int *SelectEle;
+int *SelectEleTemp;
+int *s1;
+int *s2;
+double *groupDiversity_s1;
+double *groupDiversity_s2;
+int *LBGroup, *UBGroup, *tmpUB, *BigThanLB;
 
 //directed pertubation
+int* Rd, *UnderLB; //Rd=R
 double** Avg;
-int* Rd, * UnderLB; //Rd=R
-int *SizeG; //c_g
 
-void DirectPerturbationDiversity(int eta_max, int partition[], int SizeGroup[]);
+void DirectPerturbationDiversity(int eta_max, int partition[], int SizeG[]);
 void ClearDeltaMatrix(void);
 void BuildDeltaMatrix(int partition[]);
 void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup);
@@ -522,14 +518,14 @@ void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
 	Iteratively refines partitions to balance group sizes and minimize costs */
 
-    int i, j, k, L, number, minDeltaValue, minElement;
+    int i, j, k;
+    int minDeltaValue, minElement;
 
-    // Initialize the partition and size groups
-    for (j = 0; j < K; j++) SizeG[j] = SizeGroup[j];
     BuildDeltaMatrix(s);
 
+    int number;
     // Main loop for perturbation iterations
-    for (L = 0; L < eta_max; L++) {
+    for (int L = 0; L < eta_max; L++) {
 
         // Reset tracking variables
         number = 0;
@@ -556,10 +552,10 @@ void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
 
             // Record the minimum element for removal
             Rd[k] = minElement;
-            SizeG[k] -= 1;
+            SizeGroup[k] -= 1;
 
             // If the group size falls below the lower bound, mark it
-            if (SizeG[k] < LB[k]) {
+            if (SizeGroup[k] < LB[k]) {
                 UnderLB[k] = 1;
                 number += 1;
             }
@@ -569,7 +565,7 @@ void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
         for (i = 0; i < K; i++) {
             for (j = 0; j < K; j++) {
                 Delta_Matrix[Rd[i]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] - Distances[Rd[i]][Rd[j]];
-                Avg[s[Rd[i]]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] / SizeG[s[Rd[j]]];
+                Avg[s[Rd[i]]][s[Rd[j]]] = Delta_Matrix[Rd[i]][s[Rd[j]]] / SizeGroup[s[Rd[j]]];
             }
         }        
 		
@@ -583,9 +579,9 @@ void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
             i = random_int(K);
 
             // Find the element with the highest average connection to the group
-            do {
+            while (UnderLB[i] == 0) {
                 i = (i + 1) % K;
-            } while (UnderLB[i] == 0);
+            }
             for (j = 0; j < K; j++) {
                 if (Avg[j][i] > maxAvgCon && Rd[j]!=-1) {
                     maxAvgCon = Avg[j][i];
@@ -594,11 +590,11 @@ void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
             }
 
             // Move the selected element to the group
-            SizeG[i] += 1;
+            SizeGroup[i] += 1;
             for (k = 0; k < K; k++) {
                 if (Rd[k] != -1) {
                     Delta_Matrix[Rd[k]][i] += Distances[Rd[k]][Rd[selectedGroup]];
-                    Avg[s[Rd[k]]][i] = Delta_Matrix[Rd[k]][i] / SizeG[i];
+                    Avg[s[Rd[k]]][i] = Delta_Matrix[Rd[k]][i] / SizeGroup[i];
                 }
             }
 
@@ -616,10 +612,10 @@ void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
         int groupWithMaxAvgCon;
         nn = 0;
         while (nn < K - number) {
-            selectedGroup = rand() % K;
-            do {
+            selectedGroup = random_int(K);
+            while (Rd[selectedGroup] == -1) {
                 selectedGroup = (selectedGroup + 1) % K;
-            } while (Rd[selectedGroup] == -1);
+            }
             maxAvgCon = -9999;
             for (j = 0; j < K; j++) {
                 if (Avg[selectedGroup][j] > maxAvgCon) {
@@ -628,12 +624,12 @@ void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
                 }
             }
             // Move the selected element to the group
-            if (SizeG[groupWithMaxAvgCon] < UB[groupWithMaxAvgCon]) {
-                SizeG[groupWithMaxAvgCon] += 1;
+            if (SizeGroup[groupWithMaxAvgCon] < UB[groupWithMaxAvgCon]) {
+                SizeGroup[groupWithMaxAvgCon] += 1;
                 for (k = 0; k < K; k++) {
                     if (Rd[k] != -1) {
                         Delta_Matrix[Rd[k]][groupWithMaxAvgCon] += Distances[Rd[k]][Rd[selectedGroup]];
-                        Avg[s[Rd[k]]][groupWithMaxAvgCon] = Delta_Matrix[Rd[k]][groupWithMaxAvgCon] / SizeG[groupWithMaxAvgCon];
+                        Avg[s[Rd[k]]][groupWithMaxAvgCon] = Delta_Matrix[Rd[k]][groupWithMaxAvgCon] / SizeGroup[groupWithMaxAvgCon];
                     }
                 }
                 for (k = 0; k < K; k++) {
@@ -651,12 +647,10 @@ void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
         }
         BuildDeltaMatrix(s);
     }
-
-    for (j = 0; j < K; j++) SizeGroup[j] = SizeG[j];
 }
 
 // Function to process a partition 
-void process_partition(double* groupDiversity, int* partition,  int* ub, int* childSolution,
+void process_partition(double* groupDiversity, int* partition,  int* tmpUB, int* childSolution,
      int* vectorElement, int K, int N, int *element_count, int *target_group) {
     int i, selectedGroup, processedCount, selectedElement;
 
@@ -664,21 +658,21 @@ void process_partition(double* groupDiversity, int* partition,  int* ub, int* ch
     int targetGroup = *target_group;
     int maxGroupDiversity = -1;
     for (i = 0; i < K; i++) {
-        if (groupDiversity_p1[i] > maxGroupDiversity) {
-            maxGroupDiversity = groupDiversity_p1[i];
+        if (groupDiversity_s1[i] > maxGroupDiversity) {
+            maxGroupDiversity = groupDiversity_s1[i];
             selectedGroup = i;
         }   
     }
 
     for (i = 0; i < N; i++) {
-        if (p1[i] == selectedGroup) {
+        if (s1[i] == selectedGroup) {
             SelectEle[elementCount++] = i;
         }
     }
 
     int groupCount = 0;
     for (i = 0; i < K; i++) {
-        if (ub[i] != -1 && ub[i] >= elementCount) {
+        if (tmpUB[i] != -1 && tmpUB[i] >= elementCount) {
             SelectGroup[groupCount++] = i;
         }
     }
@@ -686,8 +680,8 @@ void process_partition(double* groupDiversity, int* partition,  int* ub, int* ch
     if (groupCount == 0) { // No valid group found
         int minDiff = 999999;
         for (i = 0; i < K; i++) {
-            if (ub[i] != -1 && elementCount - ub[i] < minDiff) {
-                minDiff = elementCount - ub[i];
+            if (tmpUB[i] != -1 && elementCount - tmpUB[i] < minDiff) {
+                minDiff = elementCount - tmpUB[i];
                 targetGroup = i;
             }
         }
@@ -695,9 +689,9 @@ void process_partition(double* groupDiversity, int* partition,  int* ub, int* ch
         processedCount = 0;
         while (processedCount < elementCount - minDiff) {
             selectedElement = random_int(elementCount);
-            do {
+            while (SelectEle[selectedElement] == -1) {
                 selectedElement = (selectedElement + 1) % elementCount;
-            } while (SelectEle[selectedElement] == -1);
+            }
 
             childSolution[SelectEle[selectedElement]] = targetGroup;
             SelectEleTemp[processedCount++] = SelectEle[selectedElement];
@@ -734,33 +728,33 @@ void CrossoverDiversity(int partition1[], int partition2[], int childSolution[],
         UBGroup[i] = 0;
         BigThanLB[i] = 0;
         groupElement[i] = i;
-        ub[i] = UB[i];
+        tmpUB[i] = UB[i];
         scSizeGroup[i] = 0;
     }
 
-    // Initialize p1 with partition1
+    // Initialize s1 with partition1
     for (i = 0; i < N; i++) {
-        p1[i] = partition1[i];
+        s1[i] = partition1[i];
     }
-    BuildDeltaMatrix(p1);
+    BuildDeltaMatrix(s1);
     for (i = 0; i < N; i++) {
         for (j = 0; j < K; j++) {
             Delta_Matrix_p1[i][j] = Delta_Matrix[i][j];
         }
     }
-    BuildGroupDiversityForCrossover(p1, groupDiversity_p1);
+    BuildGroupDiversityForCrossover(s1, groupDiversity_s1);
 
-    // Initialize p2 with partition2
+    // Initialize s2 with partition2
     for (i = 0; i < N; i++) {
-        p2[i] = partition2[i];
+        s2[i] = partition2[i];
     }
-    BuildDeltaMatrix(p2);
+    BuildDeltaMatrix(s2);
     for (i = 0; i < N; i++) {
         for (j = 0; j < K; j++) {
             Delta_Matrix_p2[i][j] = Delta_Matrix[i][j];
         }
     }
-    BuildGroupDiversityForCrossover(p2, groupDiversity_p2);
+    BuildGroupDiversityForCrossover(s2, groupDiversity_s2);
 
     int targetGroup = -1;
     // Main crossover process
@@ -768,21 +762,21 @@ void CrossoverDiversity(int partition1[], int partition2[], int childSolution[],
         elementCount = 0;
         if (uniform_rnd_number() < 0.5) {
             // Process partition 1
-            process_partition(groupDiversity_p1, p1, ub, childSolution, vectorElement, K, N, &elementCount, &targetGroup);  
+            process_partition(groupDiversity_s1, s1, tmpUB, childSolution, vectorElement, K, N, &elementCount, &targetGroup);  
         } else {
             // Process partition2 (similar to partition1 logic)
-            process_partition(groupDiversity_p2, p2, ub, childSolution, vectorElement, K, N, &elementCount, &targetGroup);  
+            process_partition(groupDiversity_s2, s2, tmpUB, childSolution, vectorElement, K, N, &elementCount, &targetGroup);  
         }
 
         // Update group diversity
         for (j = 0; j < elementCount; j++) {
-            groupDiversity_p1[p1[SelectEleTemp[j]]] -= Delta_Matrix_p1[SelectEleTemp[j]][p1[SelectEleTemp[j]]];
-            groupDiversity_p2[p2[SelectEleTemp[j]]] -= Delta_Matrix_p2[SelectEleTemp[j]][p2[SelectEleTemp[j]]];
-            p1[SelectEleTemp[j]] = -1;
-            p2[SelectEleTemp[j]] = -1;
+            groupDiversity_s1[s1[SelectEleTemp[j]]] -= Delta_Matrix_p1[SelectEleTemp[j]][s1[SelectEleTemp[j]]];
+            groupDiversity_s2[s2[SelectEleTemp[j]]] -= Delta_Matrix_p2[SelectEleTemp[j]][s2[SelectEleTemp[j]]];
+            s1[SelectEleTemp[j]] = -1;
+            s2[SelectEleTemp[j]] = -1;
         }
 
-        ub[targetGroup] = -1;
+        tmpUB[targetGroup] = -1;
         scSizeGroup[targetGroup] = elementCount;
     }
 
@@ -992,8 +986,6 @@ void AssignMemoryDiversity() {
 	distance matrices, diversity measures, and neighborhood exploration.
 	*/
     
-    SizeG = (int*)malloc(K * sizeof(int));
-    
     S = (Solution*)malloc(beta_max * sizeof(Solution));
     O = (Solution*)malloc(beta_max * sizeof(Solution));
     int i;
@@ -1010,8 +1002,8 @@ void AssignMemoryDiversity() {
     for (i = 0; i < N; i++) Delta_Matrix_p1[i] = (double*)malloc(K * sizeof(double));
     Delta_Matrix_p2 = (double**)malloc(N * sizeof(double*));
     for (i = 0; i < N; i++) Delta_Matrix_p2[i] = (double*)malloc(K * sizeof(double));
-    groupDiversity_p1 = (double*)malloc(K * sizeof(double));
-    groupDiversity_p2 = (double*)malloc(K * sizeof(double));
+    groupDiversity_s1 = (double*)malloc(K * sizeof(double));
+    groupDiversity_s2 = (double*)malloc(K * sizeof(double));
     
 
     S_b.s = (int*)malloc(N * sizeof(int));
@@ -1023,7 +1015,7 @@ void AssignMemoryDiversity() {
     for (i = 0; i < K; i++) Rd[i] = 0;
     UnderLB = (int*)malloc(K * sizeof(int));
     
-    ub = (int*)malloc(K * sizeof(int));
+    tmpUB = (int*)malloc(K * sizeof(int));
     LBGroup = (int*)malloc(K * sizeof(int));
     UBGroup = (int*)malloc(K * sizeof(int));
     BigThanLB = (int*)malloc(K * sizeof(int));
@@ -1032,17 +1024,14 @@ void AssignMemoryDiversity() {
     SelectEle = (int*)malloc(N * sizeof(int));
     SelectGroup = (int*)malloc(K * sizeof(int));
     SelectEleTemp = (int*)malloc(N * sizeof(int));
-    p1 = (int*)malloc(N * sizeof(int));
-    p2 = (int*)malloc(N * sizeof(int));
+    s1 = (int*)malloc(N * sizeof(int));
+    s2 = (int*)malloc(N * sizeof(int));
 }
 
 void ReleaseMemoryDiversity() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
     
-    free(SizeG); SizeG = NULL;
-
-
     int i;
     for (i = 0; i < beta_max; i++) {
         free(S[i].s); S[i].s = NULL;
@@ -1066,12 +1055,12 @@ void ReleaseMemoryDiversity() {
     free(Delta_Matrix); Delta_Matrix = NULL;
     free(Delta_Matrix_p1); Delta_Matrix_p1 = NULL;
     free(Delta_Matrix_p2); Delta_Matrix_p2 = NULL;
-    free(groupDiversity_p1); groupDiversity_p1 = NULL;
-    free(groupDiversity_p2); groupDiversity_p2 = NULL;
+    free(groupDiversity_s1); groupDiversity_s1 = NULL;
+    free(groupDiversity_s2); groupDiversity_s2 = NULL;
     free(Avg); Avg = NULL;
     free(Rd); Rd = NULL;
     free(UnderLB); UnderLB = NULL;
-    free(ub); ub = NULL;
+    free(tmpUB); tmpUB = NULL;
     free(LBGroup); LBGroup = NULL;
     free(UBGroup); UBGroup = NULL;
     free(BigThanLB); BigThanLB = NULL;
@@ -1080,8 +1069,8 @@ void ReleaseMemoryDiversity() {
     free(SelectEle); SelectEle = NULL;
     free(SelectGroup); SelectGroup = NULL;
     free(SelectEleTemp); SelectEleTemp = NULL;
-    free(p1); p1 = NULL;
-    free(p2); p2 = NULL;
+    free(s1); s1 = NULL;
+    free(s2); s2 = NULL;
 }
 
 // Generate a random integer from zero to max-1
