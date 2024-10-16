@@ -23,7 +23,6 @@ int eta_max;
 int maxNumberIterations;
 double start_time, Time_limit;
 Solution S_b; //best solution
-Solution CS;
 Solution *S; //S_i
 Solution *O; //O_i in crossover
 
@@ -54,6 +53,17 @@ int *ub;
 double** Avg;
 int* Rd, * UnderLB; //Rd=R
 int *SizeG; //c_g
+
+void DirectPerturbationDiversity(int eta_max, int partition[], int SizeGroup[]);
+void ClearDeltaMatrix(void);
+void BuildDeltaMatrix(int partition[]);
+void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup);
+void BuildGroupDiversityForCrossover(int partition[], double groupDiversity[]);
+void AssignMemoryDiversity(void);
+void ReleaseMemoryDiversity(void);
+void SearchAlgorithmDiversity(void);
+void DoubleNeighborhoodLocalSearchDiversity(int partition[], int SizeGroup[], double* cost);
+void CrossoverDiversity(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 
 /* TPSPD for Anticlustering Based on a Distance matrix
  * 
@@ -159,12 +169,12 @@ void three_phase_search_dynamic_population_size(
     }
   }
   
-  AssignMemory();
+  AssignMemoryDiversity();
   if (*mem_error == 1) {
     return;
   }
     
-  SearchAlgorithm();
+  SearchAlgorithmDiversity();
   
   //save S_b -> solution with result
   for (int i = 0; i < N; i++){
@@ -183,11 +193,11 @@ void three_phase_search_dynamic_population_size(
   free(LB); LB = NULL;
   free(UB); UB = NULL;
   
-  ReleaseMemory();
+  ReleaseMemoryDiversity();
 }
 
 
-void SearchAlgorithm() {
+void SearchAlgorithmDiversity() {
     /* Algorithm 1: The main procedure of TPSDP. */
 
     int eta;
@@ -201,10 +211,11 @@ void SearchAlgorithm() {
     // Initial population generation
     int i, j, k;
     for (i = 0; i < beta_max; i++) {
-        InitialSol(&CS);
-        for (j = 0; j < N; j++) S[i].s[j] = CS.s[j];
-        for (k = 0; k < K; k++) S[i].SizeG[k] = CS.SizeG[k];
-        S[i].cost = CS.cost;
+        /* Algorithm 2: initializes a solution S_D[i] */
+        RandomInitialSol(S[i].s, S[i].SizeG);
+        DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &(S[i].cost));
+
+        /* Update the best solution S_b if necessary */
         if (S[i].cost > S_b.cost) {
             for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
             for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
@@ -224,7 +235,8 @@ void SearchAlgorithm() {
         // Strong Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
             UndirectedPerturbation(eta, S[i].s, S[i].SizeG);
-            DoubleNeighborhoodLocalSearch(S[i].s, S[i].SizeG, &S[i].cost);
+            DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &S[i].cost);
+
             if (S[i].cost > S_b.cost) {
                 for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
                 for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
@@ -236,11 +248,12 @@ void SearchAlgorithm() {
         if (beta_max > 1) {
             for (i = 0; i < beta_max; i++) {
                 pickedSolution = random_int(beta_max);
-                do {
+                while (pickedSolution == i) {
                     pickedSolution = (pickedSolution + 1) % beta_max;
-                } while (pickedSolution == i);
-                Crossover(S[i].s, S[pickedSolution].s, O[i].s, O[i].SizeG);
-                DoubleNeighborhoodLocalSearch(O[i].s, O[i].SizeG, &O[i].cost);
+                }
+
+                CrossoverDiversity(S[i].s, S[pickedSolution].s, O[i].s, O[i].SizeG);
+                DoubleNeighborhoodLocalSearchDiversity(O[i].s, O[i].SizeG, &O[i].cost);
             }
             for (i = 0; i < beta_max; i++) {
                 if (O[i].cost >= S[i].cost) {
@@ -252,6 +265,7 @@ void SearchAlgorithm() {
                     for (k = 0; k < K; k++) S[i].SizeG[k] = O[i].SizeG[k];
                     S[i].cost = O[i].cost;
                 }
+                
                 if (S[i].cost > S_b.cost) {
                     for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
                     for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
@@ -262,8 +276,9 @@ void SearchAlgorithm() {
 
         // Direct Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
-            DirectPerturbation(eta_max, S[i].s, S[i].SizeG);
-            DoubleNeighborhoodLocalSearch(S[i].s, S[i].SizeG, &S[i].cost);
+            DirectPerturbationDiversity(eta_max, S[i].s, S[i].SizeG);
+            DoubleNeighborhoodLocalSearchDiversity(S[i].s, S[i].SizeG, &S[i].cost);
+
             if (S[i].cost > S_b.cost) {
                 for (j = 0; j < N; j++) S_b.s[j] = S[i].s[j];
                 for (k = 0; k < K; k++) S_b.SizeG[k] = S[i].SizeG[k];
@@ -283,13 +298,6 @@ void SearchAlgorithm() {
     clock_t end_time = clock();
     double elapsed_time = (double) (end_time - start_time)/CLOCKS_PER_SEC;
     Time_limit = elapsed_time;
-}
-
-/* Algorithm 2: initializes a solution S */
-void InitialSol(Solution *S) {
-    /* Algorithm 2: initializes a solution S */
-    RandomInitialSol(S->s, S->SizeG);
-    DoubleNeighborhoodLocalSearch(S->s, S->SizeG, &(S->cost));
 }
 
 int Cmpare(const void *a, const void *b) {
@@ -385,7 +393,7 @@ void RandomInitialSol(int s[], int SizeG[]) {
 }
 
 
-void DoubleNeighborhoodLocalSearch(int s[], int SizeGroup[], double* cost) {
+void DoubleNeighborhoodLocalSearchDiversity(int s[], int SizeGroup[], double* cost) {
     const double DELTA_THRESHOLD = 0.0001;  // Define a constant for comparison threshold
     int v, g, u;
     int oldGroup, oldGroup1, t;
@@ -506,7 +514,7 @@ void UndirectedPerturbation(int theta, int s[], int SizeGroup[]) {
     }
 }
 
-void DirectPerturbation(int eta_max, int s[], int SizeGroup[]) {
+void DirectPerturbationDiversity(int eta_max, int s[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
 	Iteratively refines partitions to balance group sizes and minimize costs */
 
@@ -705,7 +713,7 @@ void process_partition(double* groupDiversity, int* partition,  int* ub, int* ch
     *target_group = targetGroup;
 }
 
-void Crossover(int partition1[], int partition2[], int childSolution[], int scSizeGroup[]) {
+void CrossoverDiversity(int partition1[], int partition2[], int childSolution[], int scSizeGroup[]) {
     /* Algorithm 5: combines partitions in a way that maintains group constraints */
 
     int i, j;
@@ -974,7 +982,7 @@ void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup) {
 	}
 }
 
-void AssignMemory() {
+void AssignMemoryDiversity() {
     /*  Allocates memory dynamically for various arrays and matrices necessary 
 	for the algorithm's execution. This includes structures for population management, 
 	distance matrices, diversity measures, and neighborhood exploration.
@@ -1001,10 +1009,8 @@ void AssignMemory() {
     groupDiversity_p1 = (double*)malloc(K * sizeof(double));
     groupDiversity_p2 = (double*)malloc(K * sizeof(double));
     
-    CS.s = (int*)malloc(N * sizeof(int));
+
     S_b.s = (int*)malloc(N * sizeof(int));
-    
-    CS.SizeG = (int*)malloc(K * sizeof(int));
     S_b.SizeG = (int*)malloc(K * sizeof(int));
     
     Avg = (double**)malloc(K * sizeof(double*));
@@ -1026,7 +1032,7 @@ void AssignMemory() {
     p2 = (int*)malloc(N * sizeof(int));
 }
 
-void ReleaseMemory() {
+void ReleaseMemoryDiversity() {
     /* responsible for reading the input file, 
     initializing matrices, and setting constraints on group sizes. */ 
     
@@ -1043,8 +1049,6 @@ void ReleaseMemory() {
     free(S); S = NULL;
     free(O); O = NULL;
     
-    free(CS.s); CS.s = NULL;
-    free(CS.SizeG); CS.SizeG = NULL;
     free(S_b.s); S_b.s = NULL;
     free(S_b.SizeG); S_b.SizeG = NULL;
     free(LB); LB = NULL;

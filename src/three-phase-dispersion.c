@@ -24,7 +24,6 @@ extern int eta_max;
 extern int maxNumberIterations;
 extern double start_time, Time_limit;
 extern Solution S_b; //best solution
-extern Solution CS;
 Solution *S_D; //S_i
 Solution *O_D; //O_i in crossover
 
@@ -67,7 +66,6 @@ void initialize_arrays(int **s_min_distance_tuple, double *s_min_distance_per_cl
 void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* cost);
 void SearchAlgorithmDisperion(void);
-void InitialSolDispersion(Solution *Solution);
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 void DirectPerturbationDispersion(int eta_max, int s[], int SizeGroup[]);
 void AssignMemoryDispersion();
@@ -358,15 +356,16 @@ void SearchAlgorithmDisperion() {
     //on windows its the wall time, on linux the CPU time
     clock_t start_time = clock();
     S_b.cost = -1;  //dispersion should be maximized
-    int i;
     
     // Initial population generation
-    int j, k;
+    int i, j, k;
     for (i = 0; i < beta_max; i++) {
-        InitialSolDispersion(&CS);
-        for (j = 0; j < N; j++) S_D[i].s[j] = CS.s[j];
-        for (k = 0; k < K; k++) S_D[i].SizeG[k] = CS.SizeG[k];
-        S_D[i].cost = CS.cost;
+
+        /* Algorithm 2: initializes a solution S_D[i] */
+        RandomInitialSol(S_D[i].s, S_D[i].SizeG);
+        DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &(S_D[i].cost));
+
+        /* Update the best solution S_b if necessary */
         if (S_D[i].cost > S_b.cost) {
             for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
             for (k = 0; k < K; k++) S_b.SizeG[k] = S_D[i].SizeG[k];
@@ -385,8 +384,9 @@ void SearchAlgorithmDisperion() {
         }
         // Strong Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
-           UndirectedPerturbation(eta, S_D[i].s, S_D[i].SizeG);
-           DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].cost);
+            UndirectedPerturbation(eta, S_D[i].s, S_D[i].SizeG);
+            DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].cost);
+        
             if (S_D[i].cost > S_b.cost) {
                 for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
                 for (k = 0; k < K; k++) S_b.SizeG[k] = S_D[i].SizeG[k];
@@ -398,11 +398,12 @@ void SearchAlgorithmDisperion() {
         if (beta_max > 1) {
             for (i = 0; i < beta_max; i++) {
                 pickedSolution = random_int(beta_max);
-                do {
+                while (pickedSolution == i) {
                     pickedSolution = (pickedSolution + 1) % beta_max;
-                } while (pickedSolution == i);
-            CrossoverDispersion(S_D[i].s, S_D[pickedSolution].s, O_D[i].s, O_D[i].SizeG);
-            DoubleNeighborhoodLocalSearchDispersion(O_D[i].s, O_D[i].SizeG, &O_D[i].cost);
+                }
+
+                CrossoverDispersion(S_D[i].s, S_D[pickedSolution].s, O_D[i].s, O_D[i].SizeG);
+                DoubleNeighborhoodLocalSearchDispersion(O_D[i].s, O_D[i].SizeG, &O_D[i].cost);
             }
             for (i = 0; i < beta_max; i++) {
                 if (O_D[i].cost >= S_D[i].cost) {
@@ -414,6 +415,7 @@ void SearchAlgorithmDisperion() {
                     for (k = 0; k < K; k++) S_D[i].SizeG[k] = O_D[i].SizeG[k];
                     S_D[i].cost = O_D[i].cost;
                 }
+
                 if (S_D[i].cost > S_b.cost) {
                     for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
                     for (k = 0; k < K; k++) S_b.SizeG[k] = S_D[i].SizeG[k];
@@ -426,6 +428,7 @@ void SearchAlgorithmDisperion() {
         for (i = 0; i < beta_max; i++) {
             DirectPerturbationDispersion(eta_max, S_D[i].s, S_D[i].SizeG);
             DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].cost);
+
             if (S_D[i].cost > S_b.cost) {
                 for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
                 for (k = 0; k < K; k++) S_b.SizeG[k] = S_D[i].SizeG[k];
@@ -445,13 +448,6 @@ void SearchAlgorithmDisperion() {
     clock_t end_time = clock();
     double elapsed_time = (double) (end_time - start_time)/CLOCKS_PER_SEC;
     Rprintf("The run time of the distance_clustering algortihm in seconds is: %f\n", elapsed_time);
-}
-
-/* Algorithm 2: initializes a solution S_D */
-void InitialSolDispersion(Solution *solution) {
-    /* Algorithm 2: initializes a solution S_D */
-    RandomInitialSol(solution->s, solution->SizeG);
-    DoubleNeighborhoodLocalSearchDispersion(solution->s, solution->SizeG, &(solution->cost));
 }
 
 void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* cost) {
@@ -1001,10 +997,7 @@ void AssignMemoryDispersion() {
         O_D[i].SizeG = (int*)malloc(K * sizeof(int));
     }
     
-    CS.s = (int*)malloc(N * sizeof(int));
     S_b.s = (int*)malloc(N * sizeof(int));
-    
-    CS.SizeG = (int*)malloc(K * sizeof(int));
     S_b.SizeG = (int*)malloc(K * sizeof(int));
     
     Rd = (int*)malloc(K * sizeof(int));
@@ -1030,8 +1023,6 @@ void ReleaseMemoryDispersion() {
     
     free(SizeG); SizeG = NULL;
 
-    free(CS.s); CS.s = NULL;
-    free(CS.SizeG); CS.SizeG = NULL;
     free(S_b.s); S_b.s = NULL;
     free(S_b.SizeG); S_b.SizeG = NULL;
     
