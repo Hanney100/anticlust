@@ -744,6 +744,7 @@ void Crossover(int partition1[], int partition2[], int childSolution[], int scSi
 
     // Initialize p1 with partition1
     for (i = 0; i < N; i++) {
+        s[i] = partition1[i];
         p1[i] = partition1[i];
     }
     BuildDeltaMatrix();
@@ -759,6 +760,7 @@ void Crossover(int partition1[], int partition2[], int childSolution[], int scSi
 
     // Initialize p2 with partition2
     for (i = 0; i < N; i++) {
+        s[i] = partition2[i];
         p2[i] = partition2[i];
     }
     BuildDeltaMatrix();
