@@ -66,9 +66,9 @@ double evaluate_objective(double *s_min_distance_per_cluster);
 void fill_arrays(int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void initialize_arrays(int **s_min_distance_tuple, double *s_min_distance_per_cluster);
 void recalculate_cluster_distance(int k, int *partition, int **s_min_distance_tuple, double *s_min_distance_per_cluster);
+void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void SearchAlgorithmDisperion(void);
 void InitialSolDispersion(Solution *Solution);
-void UndirectedPerturbationDispersion(int theta, int partition[], int SizeGroup[]);
 void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], double* cost);
 void CrossoverDispersion(int partition1[], int partition2[], int score[], int scSizeGroup[]);
 void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]);
@@ -116,7 +116,7 @@ void three_phase_search_dispersion(
                       int *number_of_iterations,
                       int *clusters,
                       int *upper_bound, 
-                      int *lower_bound, 
+                      int *lower_bound,
 											int *Beta_max, 
 											int *elapsed_time,
 											double *Theta_max,
@@ -387,7 +387,7 @@ void SearchAlgorithmDisperion() {
         }
         // Strong Perturbation and Local Search
         for (i = 0; i < beta_max; i++) {
-           UndirectedPerturbationDispersion(eta, S_D[i].s, S_D[i].SizeG);
+           UndirectedPerturbation(eta, S_D[i].s, S_D[i].SizeG);
            DoubleNeighborhoodLocalSearchDispersion(S_D[i].s, S_D[i].SizeG, &S_D[i].cost);
             if (S_D[i].cost > S_b.cost) {
                 for (j = 0; j < N; j++) S_b.s[j] = S_D[i].s[j];
@@ -541,54 +541,6 @@ void DoubleNeighborhoodLocalSearchDispersion(int partition[], int SizeGroup[], d
         *cost = objective;
 }
 
-void UndirectedPerturbationDispersion(int theta, int partition[], int SizeGroup[]) {
-    /* Algorithm 4: Undirected Perturbation. Applies a strong perturbation to the partition */
-
-    int perturb_type;
-    int v, g, x, y;
-    int oldGroup, swap;
-
-    for (int i = 0; i < N; i++) {
-        s[i] = partition[i];
-    }
-
-    int count = 0;
-    int NumberNeighbors = N * (N - 1) / 2 + N * K;
-
-    while (count < theta) {
-        perturb_type = random_int(NumberNeighbors);
-
-        if (perturb_type  < N * K) {  // Type 1: Random (element, group) perturbation
-            v = random_int(N); // Randomly choose an element v
-            g = random_int(K); // Randomly choose a group g
-
-             if (s[v] != g && SizeGroup[s[v]] > LB[s[v]] && SizeGroup[g] < UB[g]) {
-                oldGroup = s[v];
-                SizeGroup[oldGroup]--;
-                SizeGroup[g]++;
-                s[v] = g;
-                count++;
-            }
-        } 
-        else { // Type 2: Random (element x, element y) perturbation
-            x = random_int(N); // Randomly choose element x
-            y = random_int(N); // Randomly choose element y
-
-            // Apply perturbation if elements are in different groups
-            if (s[x] != s[y] && x != y) {
-                swap = s[x];
-                s[x] = s[y];
-                s[y] = swap;
-                count++;
-            }
-        }
-    }
-
-    // Copy the perturbed partition back to the original partition
-    for (int i = 0; i < N; i++) {
-        partition[i] = s[i];
-    }
-}
 
 void DirectPerturbationDispersion(int eta_max, int partition[], int SizeGroup[]) {
     /* Algorithm 6: Directed Perturbation. 
@@ -1087,7 +1039,7 @@ void ReleaseMemoryDispersion() {
     
    // Rprintf("relesee dispersion Until now runs trhough.");
     // IMPORTANT: releasing S_D and O_D like for TPSDP leads to error!
-    //int i;
+    int i;
     //for (i = 0; i < beta_max; i++) {
       //  free(S_D[i].s); S_D[i].s = NULL;
        // free(S_D[i].SizeG); S_D[i].SizeG = NULL;

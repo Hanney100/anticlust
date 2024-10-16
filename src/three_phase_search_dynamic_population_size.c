@@ -57,19 +57,6 @@ double** Avg;
 int* Rd, * UnderLB; //Rd=R
 int *SizeG; //c_g
 
-void ClearDeltaMatrix();
-void BuildDeltaMatrix();
-void OneMoveUpdateDeltaMatrix(int i, int oldGroup, int newGroup);
-void BuildGroupDiversityForCrossover();
-void AssignMemory();
-void ReleaseMemory();
-void SearchAlgorithm();
-void InitialSol(Solution *S);
-void UndirectedPerturbation(int theta, int partition[], int SizeGroup[]);
-void DoubleNeighborhoodLocalSearch(int partition[], int SizeGroup[], double* cost);
-void Crossover(int partition1[], int partition2[], int score[], int scSizeGroup[]);
-void DirectPerturbation(int eta_max, int partition[], int SizeGroup[]);
-
 /* TPSPD for Anticlustering Based on a Distance matrix
  * 
  * param *distannces: vector of data points (in R, this is a distance matrix,
@@ -927,7 +914,7 @@ double LocalSearchCriterionCalcutlation(int partition1[], int partition2[], doub
     
     // Handle potential division by zero
     if (cost2 == 0.0) {
-        Rprintf(stderr, "Error: Division by zero (cost2 is zero).\n");
+        Rprintf("Error: Division by zero (cost2 is zero).\n");
         return -1;  
     }
 
