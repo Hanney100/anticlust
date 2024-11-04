@@ -466,8 +466,9 @@ void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* o
                     g1 = s[v];
                     old_f1 = min_distance_per_cluster[s[v]];
                     old_f2 = min_distance_per_cluster[g];
-                    removing(v, s, min_distance_tuple, min_distance_per_cluster);  //remove 
-                    	// do not forget to carry out the adding to another cluster afterwards using the procedure above
+                    tuple1[0] = min_distance_tuple[g1][0]; tuple1[1] = min_distance_tuple[g1][1];
+                    tuple2[0] = min_distance_tuple[g ][0]; tuple2[1] = min_distance_tuple[g ][1];
+                    removing(v, s, min_distance_tuple, min_distance_per_cluster);
 	                adding(v, g, s, min_distance_tuple, min_distance_per_cluster);
 
                      // accept changes only if the smaller of the two does not get down-graded (possibly decreasing the global minimum)
@@ -481,7 +482,12 @@ void DoubleNeighborhoodLocalSearchDispersion(int s[], int SizeGroup[], double* o
                         s[v] = g1;
                         min_distance_per_cluster[g1] = old_f1;
                         min_distance_per_cluster[g] = old_f2;
+                        min_distance_tuple[g1][0] = tuple1[0]; min_distance_tuple[g1][1] = tuple1[1];
+                        min_distance_tuple[g ][0] = tuple2[0]; min_distance_tuple[g ][1] = tuple2[1];
                     } else {
+                        // update new group sizes 
+                        SizeGroup[g]  += 1;
+                        SizeGroup[g1] -= 1;
                         // maybe change this to a for loop 
                         // when set to 1, the group protenitally can run a long time
                         imp = 0;
